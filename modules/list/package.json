@@ -1,0 +1,5 @@
+{
+  "name": "list",
+  "description": "List registered applications",
+  "main": "index.js"
+}

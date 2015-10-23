@@ -1,0 +1,5 @@
+{
+  "name": "restart",
+  "description": "Restart containers",
+  "main": "index.js"
+}

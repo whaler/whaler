@@ -1,0 +1,5 @@
+{
+  "name": "plugins",
+  "description": "Manage plugins",
+  "main": "index.js"
+}

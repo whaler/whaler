@@ -1,0 +1,130 @@
+#!/usr/bin/env node
+
+'use strict';
+
+process.bin = process.title = 'whaler';
+
+var fs = require('fs');
+var tls = require('tls');
+var path = require('path');
+var console = require('../lib/console');
+
+var argv = process.argv.slice(2);
+
+var index = argv.indexOf('-H');
+if (-1 === index) {
+    index = argv.indexOf('--host');
+}
+
+if (-1 !== index && argv[index + 1]) {
+
+    var args = argv.splice(index, 2);
+
+    var host = args[1];
+    var port = 1337;
+
+    var arr = host.split(':');
+    if (2 == arr.length) {
+        host = arr[0];
+        port = arr[1];
+    }
+
+    try {
+        var key = fs.readFileSync(process.env.HOME + '/.whaler/' + host + '.key');
+        var cert = fs.readFileSync(process.env.HOME + '/.whaler/' + host + '.crt');
+    } catch (e) {}
+
+    var options = {
+        key: key,
+        cert: cert,
+        rejectUnauthorized: false
+    };
+
+    var client = tls.connect(port, host, options);
+
+    client.on('error', function(err) {
+        console.log('');
+        var message = err.message;
+        if ('EPROTO' == err.code) {
+            message = 'Protocol error';
+        }
+        console.error('[%s] %s', process.pid, message, '\n');
+        process.stdin.setRawMode(false);
+        process.exit();
+    });
+
+    client.on('end', function() {
+        process.stdin.setRawMode(false);
+        process.exit();
+    });
+
+    client.on('connect', function() {
+        process.stdin.setRawMode(true);
+        process.stdin.pipe(client);
+        client.pipe(process.stdout);
+        client.write(JSON.stringify({
+            name: path.basename(process.cwd()),
+            argv: argv
+        }));
+    });
+
+} else {
+
+    var Q = require('q');
+    var pkg = require('../package.json');
+    var progress = require('../lib/progress');
+    var logo = fs.readFileSync(path.dirname(__dirname) + '/logo.txt', 'utf8');
+    var Whaler = require('../index');
+
+    var prepareAuthor = function(author) {
+        if (typeof author == 'string') {
+            return author;
+        }
+        return author.name + ' <' + author.email + '> (' + author.url + ')';
+    };
+
+    if (!argv.length) {
+        console.log('');
+        console.info(logo);
+        console.warn('      Version: ', pkg.version);
+        console.warn('      Author: ', prepareAuthor(pkg.author));
+        console.warn('      URL: ', pkg.homepage);
+        console.log('');
+        progress.start(6);
+    } else {
+        progress.start();
+    }
+
+    var whaler = new Whaler();
+
+    var app = Q.async(function*() {
+        var modules = yield Q.denodeify(function(callback) {
+            whaler.modules.list(callback);
+        })();
+        modules.forEach(function(name) {
+            whaler.require('./modules/' + name)(whaler);
+        });
+
+        var plugins = yield Q.denodeify(function(callback) {
+            whaler.plugins.list(callback);
+        })();
+        plugins.forEach(function(name) {
+            whaler.plugins.require(name)(whaler);
+        });
+    })();
+
+    app.done(function() {
+        progress.stop();
+        if (!argv.length) {
+            whaler.cli.help();
+        } else {
+            whaler.cli.parse(process.argv);
+        }
+        console.log('');
+
+    }, function(error) {
+        progress.stop();
+        console.error(error.message);
+        console.log('');
+    });
+}

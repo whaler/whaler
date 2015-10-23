@@ -1,0 +1,5 @@
+{
+  "name": "init",
+  "description": "Creates a new application",
+  "main": "index.js"
+}

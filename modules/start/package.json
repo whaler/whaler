@@ -1,0 +1,5 @@
+{
+  "name": "start",
+  "description": "Start containers",
+  "main": "index.js"
+}

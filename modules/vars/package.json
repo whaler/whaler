@@ -1,0 +1,5 @@
+{
+  "name": "vars",
+  "description": "Manage vars",
+  "main": "index.js"
+}

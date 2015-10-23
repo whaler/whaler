@@ -1,0 +1,5 @@
+{
+  "name": "run",
+  "description": "Run a command inside container",
+  "main": "index.js"
+}

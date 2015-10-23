@@ -1,0 +1,5 @@
+{
+  "name": "logs",
+  "description": "Show container logs",
+  "main": "index.js"
+}

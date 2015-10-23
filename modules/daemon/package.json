@@ -1,0 +1,5 @@
+{
+  "name": "daemon",
+  "description": "Daemon to listen to multiple sockets connections",
+  "main": "index.js"
+}

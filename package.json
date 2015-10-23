@@ -1,0 +1,47 @@
+{
+  "name": "whaler",
+  "description": "Define and run multi-container applications with Docker",
+  "author": "Sergei Vizel <sergei.vizel@gmail.com> (https://github.com/cravler)",
+  "homepage": "https://github.com/cravler/whaler",
+  "keywords": [
+    "whale",
+    "whaler",
+    "docker",
+    "compose",
+    "fig"
+  ],
+  "license": "MIT",
+  "version": "0.1.0",
+  "main": "index.js",
+  "bin": {
+    "whaler": "bin/whaler"
+  },
+  "engines": {
+    "node": ">=0.11.2"
+  },
+  "dependencies": {
+    "cli-table": "^0.3.1",
+    "colors": "^1.1.2",
+    "commander": "^2.8.1",
+    "dockerode": "^2.2.3",
+    "nedb": "^1.2.1",
+    "nmpm": "^0.1.1",
+    "pty.js": "^0.3.0",
+    "q": "^1.4.1",
+    "tar-fs": "^1.8.1",
+    "tar-stream": "^1.2.1",
+    "yamljs": "^0.2.4"
+  },
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/cravler/whaler.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cravler/whaler/issues"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

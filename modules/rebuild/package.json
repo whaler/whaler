@@ -1,0 +1,5 @@
+{
+  "name": "rebuild",
+  "description": "Rebuild containers",
+  "main": "index.js"
+}

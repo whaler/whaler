@@ -1,0 +1,5 @@
+{
+  "name": "remove",
+  "description": "Remove containers",
+  "main": "index.js"
+}

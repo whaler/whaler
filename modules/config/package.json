@@ -1,0 +1,5 @@
+{
+  "name": "config",
+  "description": "Application configuration",
+  "main": "index.js"
+}

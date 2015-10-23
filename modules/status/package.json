@@ -1,0 +1,5 @@
+{
+  "name": "status",
+  "description": "Show application status",
+  "main": "index.js"
+}
