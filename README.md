@@ -3,13 +3,13 @@
 ## Install
 
 ```sh
-$ curl -sSL https://raw.githubusercontent.com/cravler/whaler/master/.docker/install.sh | sudo sh
+$ curl -sSL https://git.io/whaler-install | sudo sh
 ```
 
 OR
 
 ```sh
-$ curl -sSL https://raw.githubusercontent.com/cravler/whaler/master/.docker/install.sh | sudo sh -s -- --version=latest
+$ curl -sSL https://git.io/whaler-install | sudo sh -s -- --version=latest
 ```
 
 ## Run app
