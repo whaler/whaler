@@ -35,7 +35,7 @@ if [ -z "$ID" ]; then
 
     echo "Installing..."
 
-    docker run -it \
+    docker run -t \
     $DEV_OPTIONS \
     -v /usr/local/bin \
     -v /usr/local/lib/node_modules \
@@ -50,7 +50,7 @@ else
 
     echo "Updating..."
 
-    docker run -it --rm \
+    docker run -t --rm \
     $DEV_OPTIONS \
     --volumes-from whaler \
     --name whaler_update_$$ \
