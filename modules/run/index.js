@@ -119,12 +119,10 @@ module.exports = function(whaler) {
             );
         }
 
-        whaler.apps.find({ _id: appName }, function(err, docs) {
-
+        whaler.apps.get(appName, function(err, app) {
             var promise = Q.async(function*() {
-
-                if (docs.length < 1 || appName !== docs[0]['_id']) {
-                    throw new Error('An application with "' + appName + '" name not found.');
+                if (err) {
+                    throw err;
                 }
 
                 var containers = yield listContainers({
@@ -252,7 +250,7 @@ module.exports = function(whaler) {
 
             promise.done(function(data) {
                 callback(null, data);
-            }, function (err) {
+            }, function(err) {
                 callback(err);
             });
         });

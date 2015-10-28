@@ -62,15 +62,12 @@ module.exports = function(whaler) {
             containerName = parts[0];
         }
 
-        whaler.apps.find({ _id: appName }, function(err, docs) {
-
+        whaler.apps.get(appName, function(err, app) {
             var promise = Q.async(function*() {
-
-                if (docs.length < 1 || appName !== docs[0]['_id']) {
-                    throw new Error('An application with "' + appName + '" name not found.');
+                if (err) {
+                    throw err;
                 }
 
-                var app = docs[0];
                 var appConfig = app.config;
                 if (options['config']) {
                     appConfig = yield emitConfig({
@@ -125,7 +122,8 @@ module.exports = function(whaler) {
                         'ExposedPorts': {},
                         'HostConfig': {
                             'Binds': [
-                                '/etc/whaler/bin/me:/usr/bin/@me'
+                                '/etc/whaler/bin/me:/usr/bin/@me',
+                                '/etc/whaler/bin/me:/usr/bin/@whaler'
                             ],
                             PortBindings: {}
                         }
@@ -228,7 +226,7 @@ module.exports = function(whaler) {
 
             promise.done(function(containers) {
                 callback(null, containers);
-            }, function (err) {
+            }, function(err) {
                 callback(err);
             });
         });

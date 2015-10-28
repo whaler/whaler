@@ -66,11 +66,16 @@ module.exports = function(whaler) {
 
             stream.setEncoding('utf8');
             stream.on('data', function(data) {
-                if (-1 !== data.indexOf('@whaler ready in ')) {
+                if (-1 !== data.indexOf('@whaler ready in') || -1 !== data.indexOf('@whaler wait')) {
                     var sleepTime = str2time(data);
-                    console.warn('[%s] Waiting %ss to make sure container is started.', process.pid, sleepTime / 1000, '\n');
+                    console.info('[%s] Waiting %ss to make sure container is started.', process.pid, sleepTime / 1000, '\n');
                     clearTimeout(timeoutId);
                     setTimeout(exit, sleepTime);
+
+                    if (-1 !== data.indexOf('@whaler ready in')) {
+                        console.warn('[%s] "@me ready in" is deprecated, please use "@whaler wait" instead.', process.pid, '\n');
+                    }
+
                 } else {
                     process.stdout.write(data);
                 }
@@ -147,25 +152,27 @@ module.exports = function(whaler) {
             containerName = parts[0];
         }
 
-        whaler.apps.find({ _id: appName }, function(err, docs) {
+        var exit = function() {
+            process.removeListener('SIGINT', exit);
+            process.stdout.write('\n');
+            process.exit();
+        };
+        process.on('SIGINT', exit);
 
+        whaler.apps.get(appName, function(err, app) {
             var promise = Q.async(function*() {
-
-                var app = null;
-                if (docs.length < 1 || appName !== docs[0]['_id']) {
+                if (err) {
                     if (options['init']) {
                         app = yield emitInit({
                             name: appName,
                             config: 'string' === typeof options['init'] ? options['init'] : undefined
                         });
+                        err = null;
                     }
-
-                } else {
-                    app = docs[0];
                 }
 
-                if (!app) {
-                    throw new Error('An application with "' + appName + '" name not found.');
+                if (err) {
+                    throw err;
                 }
 
                 var names = Object.keys(app.config['data']);
@@ -256,8 +263,10 @@ module.exports = function(whaler) {
 
             promise.done(function(containers) {
                 callback(null, containers);
-            }, function (err) {
+                process.removeListener('SIGINT', exit);
+            }, function(err) {
                 callback(err);
+                process.removeListener('SIGINT', exit);
             });
         });
     });

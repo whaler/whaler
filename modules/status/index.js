@@ -56,16 +56,7 @@ module.exports = function(whaler) {
     whaler.events.on('status', function(options, callback) {
         options['name'] = whaler.helpers.getName(options['name']);
 
-        whaler.apps.find({ _id: options['name'] }, function(err, docs) {
-
-            if (docs.length < 1 || options['name'] !== docs[0]['_id']) {
-                return callback(
-                    new Error('An application with "' + options['name'] + '" name not found.')
-                );
-            }
-
-            var app = docs[0];
-
+        whaler.apps.get(options['name'], function(err, app) {
             var promise = Q.async(function*() {
                 if (err) {
                     throw err;
@@ -78,7 +69,7 @@ module.exports = function(whaler) {
                     all: true,
                     filters: JSON.stringify({
                         name: [
-                            whaler.helpers.getDockerFiltersNamePattern(app._id)
+                            whaler.helpers.getDockerFiltersNamePattern(options['name'])
                         ]
                     })
                 });
@@ -93,7 +84,7 @@ module.exports = function(whaler) {
 
                 while (names.length) {
                     var name = names.shift();
-                    var container = whaler.docker.getContainer(name + '.' + app._id);
+                    var container = whaler.docker.getContainer(name + '.' + options['name']);
 
                     var ip = '-';
                     var status = 'NOT CREATED';
@@ -109,7 +100,7 @@ module.exports = function(whaler) {
                         }
                     } catch (e) {}
 
-                    var appName = name + '.' + app._id;
+                    var appName = name + '.' + options['name'];
                     response.push([
                         color ? appName[color] : appName,
                         status,
@@ -122,7 +113,7 @@ module.exports = function(whaler) {
 
             promise.done(function(response) {
                 callback(null, [response]);
-            }, function (err) {
+            }, function(err) {
                 callback(err);
             });
         });

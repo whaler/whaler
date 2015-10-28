@@ -46,6 +46,14 @@ module.exports = function(whaler) {
             }
             stream.setEncoding('utf8');
             stream.pipe(process.stdout, { end: true });
+
+            var exit = function() {
+                process.removeListener('SIGINT', exit);
+                stream.socket.end();
+                process.stdout.write('\n');
+                callback(null);
+            };
+            process.on('SIGINT', exit);
         });
     });
 };

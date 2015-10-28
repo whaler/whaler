@@ -1,7 +1,7 @@
 'use strict';
 
 var fs = require('fs');
-var Datastore = require('nedb');
+var Apps = require('./lib/apps');
 var EventEmitter = require('./lib/events');
 
 var mkdir = function(dir) {
@@ -22,15 +22,8 @@ var Whaler = function() {
     this.modules = require('./lib/modules');
     this.plugins = require('./lib/plugins');
 
+    this.apps    = new Apps();
     this.events  = new EventEmitter();
-    this.vars    = new Datastore({
-        filename: '/etc/whaler/vars.db',
-        autoload: true
-    });
-    this.apps    = new Datastore({
-        filename: '/etc/whaler/apps.db',
-        autoload: true
-    });
 
     this.require = function(id) {
         return module.require(id);

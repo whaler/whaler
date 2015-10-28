@@ -1,6 +1,7 @@
 'use strict';
 
 var Table = require('cli-table');
+var Datastore = require('nedb');
 
 var addCmd = function(whaler) {
     var pkg = require('./package.json');
@@ -62,12 +63,17 @@ module.exports = function(whaler) {
 
     addCmd(whaler);
 
+    var vars = new Datastore({
+        filename: '/etc/whaler/vars.db',
+        autoload: true
+    });
+
     whaler.events.on('vars', function(options, callback) {
         var action = options['action'] || 'list';
         var name = options['name'] || null;
 
         if ('list' == action) {
-            whaler.vars.find({}, function(err, docs) {
+            vars.find({}, function(err, docs) {
                 var vars = {};
                 while (docs.length) {
                     var obj = docs.shift();
@@ -75,11 +81,10 @@ module.exports = function(whaler) {
                 }
                 callback(null, vars);
             });
+
         } else {
             if (name) {
-
-                whaler.vars.find({ _id: name }, function(err, docs) {
-
+                vars.find({ _id: name }, function(err, docs) {
                     var v = null;
                     if (1 == docs.length && options['name'] == docs[0]['_id']) {
                         v = docs[0];
@@ -91,14 +96,13 @@ module.exports = function(whaler) {
                                 new Error('An var with "' + options['name'] + '" name not found.')
                             );
                         }
-                        whaler.vars.remove({ _id: options['name'] }, {});
+                        vars.remove({ _id: options['name'] }, {});
                         callback(null);
 
                     } else {
-
                         if (v) {
                             var update = { value: options['value'] };
-                            whaler.vars.update({ _id: v['_id'] }, { $set: update }, {}, function(err) {
+                            vars.update({ _id: v['_id'] }, { $set: update }, {}, function(err) {
                                 if (err) {
                                     return callback(err);
                                 }
@@ -111,7 +115,7 @@ module.exports = function(whaler) {
                                 value: options['value']
                             };
 
-                            whaler.vars.insert(v, function(err, doc) {
+                            vars.insert(v, function(err, doc) {
                                 if (err) {
                                     return callback(err);
                                 }

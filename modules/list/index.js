@@ -49,24 +49,25 @@ module.exports = function(whaler) {
 
     whaler.events.on('list', function(options, callback) {
 
-        whaler.apps.find({}, function(err, docs) {
-
+        whaler.apps.all(function(err, apps) {
             var promise = Q.async(function*() {
                 if (err) {
                     throw err;
                 }
 
                 var response = [];
+                var keys = Object.keys(apps);
 
-                while (docs.length) {
-                    var app = docs.shift();
+                while (keys.length) {
+                    var appName = keys.shift();
+                    var app = apps[appName];
                     var names = Object.keys(app.config['data']);
 
                     var containers = yield listContainers({
                         all: true,
                         filters: JSON.stringify({
                             name: [
-                                whaler.helpers.getDockerFiltersNamePattern(app._id)
+                                whaler.helpers.getDockerFiltersNamePattern(appName)
                             ]
                         })
                     });
@@ -82,7 +83,7 @@ module.exports = function(whaler) {
                     var status = [];
                     while (names.length) {
                         var name = names.shift();
-                        var container = whaler.docker.getContainer(name + '.' + app._id);
+                        var container = whaler.docker.getContainer(name + '.' + appName);
 
                         var value = '~';
                         var color = app.config['data'][name] ? null : 'red';
@@ -97,7 +98,7 @@ module.exports = function(whaler) {
                         status.push(color ? value[color] : value);
                     }
 
-                    response.push([app._id, status.join('|'), app.path]);
+                    response.push([appName, status.join('|'), app.path]);
                 }
 
                 return response;
@@ -105,7 +106,7 @@ module.exports = function(whaler) {
 
             promise.done(function(response) {
                 callback(null, [response]);
-            }, function (err) {
+            }, function(err) {
                 callback(err);
             });
         });

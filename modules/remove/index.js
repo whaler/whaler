@@ -54,12 +54,10 @@ module.exports = function(whaler) {
             containerName = parts[0];
         }
 
-        whaler.apps.find({ _id: appName }, function(err, docs) {
-
+        whaler.apps.get(appName, function(err, app) {
             var promise = Q.async(function*() {
-
-                if (docs.length < 1 || appName !== docs[0]['_id']) {
-                    throw new Error('An application with "' + appName + '" name not found.');
+                if (err) {
+                    throw err;
                 }
 
                 var names = [];
@@ -98,7 +96,7 @@ module.exports = function(whaler) {
                 }
 
                 if (!containerName && options['purge']) {
-                    whaler.apps.remove({ _id: appName }, {});
+                    whaler.apps.remove(appName);
 
                     console.warn('[%s] Application "%s" removed.', process.pid, appName,'\n');
                 }
@@ -108,7 +106,7 @@ module.exports = function(whaler) {
             promise.done(function() {
                 callback(null);
 
-            }, function (err) {
+            }, function(err) {
                 callback(err);
             });
         });

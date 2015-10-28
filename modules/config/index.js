@@ -115,15 +115,11 @@ module.exports = function(whaler) {
     whaler.events.on('config', function(options, callback) {
         options['name'] = whaler.helpers.getName(options['name']);
 
-        whaler.apps.find({ _id: options['name'] }, function(err, docs) {
-
-            if (docs.length < 1 || options['name'] !== docs[0]['_id']) {
-                return callback(
-                    new Error('An application with "' + options['name'] + '" name not found.')
-                );
+        whaler.apps.get(options['name'], function(err, app) {
+            if (err) {
+                return callback(err);
             }
 
-            var app = docs[0];
             var update = {};
 
             var loadConfig = function() {
@@ -154,7 +150,10 @@ module.exports = function(whaler) {
             }
 
             if (Object.keys(update).length > 0) {
-                whaler.apps.update({ _id: app['_id'] }, { $set: update }, {}, function(err, numReplaced) {
+                whaler.apps.update(options['name'], update, function(err) {
+                    if (err) {
+                        return callback(err);
+                    }
                     callback(null, update['config'] || app.config);
                 });
 

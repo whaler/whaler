@@ -81,5 +81,13 @@ module.exports = function(whaler) {
         server.listen(port, function() {
             console.warn('[%s] Daemon start listening %s port.', process.pid, port);
         });
+
+        var exit = function() {
+            process.removeListener('SIGINT', exit);
+            server.close();
+            process.stdout.write('\n');
+            callback(null);
+        };
+        process.on('SIGINT', exit);
     });
 };

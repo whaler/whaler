@@ -50,18 +50,13 @@ module.exports = function(whaler) {
         options['env']    = options['env'] || 'dev';
         options['config'] = options['config'];
 
-        var app = {
-            _id:  options['name'],
+        whaler.apps.add(options['name'], {
             path: options['path'],
             env:  options['env'],
             config: {}
-        };
-
-        whaler.apps.insert(app, function(err, doc) {
+        }, function(err, app) {
             if (err) {
-                return callback(
-                    new Error('An application with "' + options['name'] + '" name already exists.')
-                );
+                return callback(err);
             }
 
             whaler.events.emit('config', {
@@ -70,7 +65,7 @@ module.exports = function(whaler) {
                 update: true
             }, function(err, config) {
                 if (err) {
-                    whaler.apps.remove({ _id: options['name'] }, {});
+                    whaler.apps.remove(options['name']);
                     return callback(err);
                 }
 
