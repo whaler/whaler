@@ -11,7 +11,7 @@
     "fig"
   ],
   "license": "MIT",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "index.js",
   "bin": {
     "whaler": "bin/whaler"
@@ -25,7 +25,7 @@
     "commander": "^2.8.1",
     "dockerode": "^2.2.3",
     "nedb": "^1.2.1",
-    "nmpm": "^0.1.1",
+    "nmpm": "^0.1.2",
     "pty.js": "^0.3.0",
     "q": "^1.4.1",
     "tar-fs": "^1.8.1",

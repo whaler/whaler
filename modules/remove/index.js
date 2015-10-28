@@ -1,6 +1,21 @@
 'use strict';
 
 var Q = require('q');
+var fs = require('fs');
+
+var deleteFolderRecursive = function(path) {
+    if(fs.existsSync(path)) {
+        fs.readdirSync(path).forEach(function(file, index) {
+            var curPath = path + '/' + file;
+            if(fs.lstatSync(curPath).isDirectory()) {
+                deleteFolderRecursive(curPath);
+            } else {
+                fs.unlinkSync(curPath);
+            }
+        });
+        fs.rmdirSync(path);
+    }
+};
 
 var addCmd = function(whaler) {
     var pkg = require('./package.json');
@@ -97,6 +112,8 @@ module.exports = function(whaler) {
 
                 if (!containerName && options['purge']) {
                     whaler.apps.remove(appName);
+
+                    deleteFolderRecursive('/var/lib/whaler/volumes/' + appName);
 
                     console.warn('[%s] Application "%s" removed.', process.pid, appName,'\n');
                 }

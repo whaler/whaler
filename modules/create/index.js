@@ -43,6 +43,10 @@ module.exports = function(whaler) {
     var createContainer = Q.denodeify(whaler.docker.createContainer);
     var createDockerfile = Q.denodeify(whaler.docker.createDockerfile);
 
+    var imageInspect = Q.denodeify(function(image, callback) {
+        image.inspect(callback);
+    });
+
     var emitVars = Q.denodeify(function(callback) {
         whaler.events.emit('vars', {}, callback);
     });
@@ -158,6 +162,13 @@ module.exports = function(whaler) {
                         createOpts['Image'] = image;
                     }
 
+                    var image = whaler.docker.getImage(createOpts['Image']);
+                    var info = yield imageInspect(image);
+                    var volumes = [];
+                    if (info['ContainerConfig']['Volumes']) {
+                        volumes = Object.keys(info['ContainerConfig']['Volumes']);
+                    }
+
                     if (config['wait']) {
                         createOpts['Labels']['whaler.wait'] = config['wait'].toString();
                     }
@@ -183,8 +194,24 @@ module.exports = function(whaler) {
                             if (!path.isAbsolute(arr[0])) {
                                 arr[0] = path.join(path.dirname(appConfig['file']), path.normalize(arr[0]));
                             }
+
+                            if (volumes.length) {
+                                var index = volumes.indexOf(arr[1]);
+                                if (-1 !== index) {
+                                    volumes.splice(index, 1);
+                                }
+                            }
+
                             createOpts['HostConfig']['Binds'].push(arr.join(':'));
                         });
+                    }
+
+                    if (volumes.length) {
+                        while (volumes.length) {
+                            var volume = volumes.shift();
+                            var v = '/var/lib/whaler/volumes/' + appName + '/' + name + volume;
+                            createOpts['HostConfig']['Binds'].push(v + ':' + volume);
+                        }
                     }
 
                     if (config['ports']) {

@@ -40,6 +40,7 @@ if [ -z "$ID" ]; then
     -v /usr/local/bin \
     -v /usr/local/lib/node_modules \
     -v /etc/whaler:/etc/whaler \
+    -v /var/lib/whaler:/var/lib/whaler \
     -v /var/lib/docker:/var/lib/docker \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --name whaler \
