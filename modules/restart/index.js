@@ -14,6 +14,7 @@ var addCmd = function(whaler) {
             ref: ref
         }, function(err, containers) {
             if (err) {
+                console.log('');
                 return console.error('[%s] %s', process.pid, err.message, '\n');
             }
         });
@@ -28,8 +29,6 @@ var addCmd = function(whaler) {
 module.exports = function(whaler) {
 
     addCmd(whaler);
-
-    var console = whaler.require('./lib/console');
 
     whaler.events.on('restart', function(options, callback) {
         options['ref'] = whaler.helpers.getRef(options['ref']);

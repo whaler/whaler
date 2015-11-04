@@ -16,6 +16,7 @@ var addCmd = function(whaler) {
         whaler.events.emit('status', {
             name: name
         }, function(err, response) {
+            console.log('');
             if (err) {
                 return console.error('[%s] %s', process.pid, err.message, '\n');
             }

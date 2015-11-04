@@ -20,6 +20,7 @@ var addCmd = function(whaler) {
         };
 
         whaler.events.emit('vars', opts, function(err, vars) {
+            console.log('');
             if (err) {
                 return console.error('[%s] %s', process.pid, err.message, '\n');
             }

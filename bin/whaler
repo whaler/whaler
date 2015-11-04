@@ -120,11 +120,10 @@ if (-1 !== index && argv[index + 1]) {
         } else {
             whaler.cli.parse(process.argv);
         }
-        console.log('');
 
     }, function(error) {
         progress.stop();
-        console.error(error.message);
         console.log('');
+        console.error('[%s] %s', process.pid, error.message, '\n');
     });
 }

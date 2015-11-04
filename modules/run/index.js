@@ -21,6 +21,7 @@ var addCmd = function(whaler) {
             tty: options.tty
         }, function(err, data) {
             if (err) {
+                console.log('');
                 return console.error('[%s] %s', process.pid, err.message, '\n');
             }
         });
@@ -217,7 +218,7 @@ module.exports = function(whaler) {
                 } else {
                     var killContainer = function() {
                         container.kill({}, function(err, data) {
-                            console.log('\n');
+                            console.log('');
                             console.warn('[%s] %s', process.pid, 'Container killed', '\n');
                         });
                     };

@@ -14,6 +14,7 @@ var addCmd = function(whaler) {
             ref: ref
         }, function(err, containers) {
             if (err) {
+                console.log('');
                 return console.error('[%s] %s', process.pid, err.message, '\n');
             }
         });

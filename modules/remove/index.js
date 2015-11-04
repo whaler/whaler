@@ -35,6 +35,7 @@ var addCmd = function(whaler) {
             purge: options.purge
         }, function(err) {
             if (err) {
+                console.log('');
                 return console.error('[%s] %s', process.pid, err.message, '\n');
             }
         });
