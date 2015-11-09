@@ -13,6 +13,7 @@ docker run -it --rm \
 -v $HOME/.whaler:/root/.whaler \
 $WHALER_VOLUME \
 -w `pwd` \
+--pid host \
 --volumes-from whaler \
 --name whaler_$$ \
 node:4.2 \

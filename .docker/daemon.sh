@@ -11,6 +11,7 @@ docker run -d --restart always \
 -v $HOME/apps:/root/apps \
 -w /root/apps \
 -p $PORT:$PORT \
+--pid host \
 --volumes-from whaler \
 --name whaler_daemon \
 node:4.2 \

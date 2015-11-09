@@ -54,7 +54,7 @@ else
     docker run -t --rm \
     $DEV_OPTIONS \
     --volumes-from whaler \
-    --name whaler_update_$$ \
+    --name whaler_update \
     node:4.2 \
     $NPM_INSTALL
 
