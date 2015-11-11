@@ -68,6 +68,7 @@ module.exports = function(whaler) {
             stream.setEncoding('utf8');
             stream.on('data', function(data) {
                 if (-1 !== data.indexOf('@whaler ready in') || -1 !== data.indexOf('@whaler wait')) {
+                    console.log('');
                     var sleepTime = str2time(data);
                     console.info('[%s] Waiting %ss to make sure container is started.', process.pid, sleepTime / 1000, '\n');
                     clearTimeout(timeoutId);
