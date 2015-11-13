@@ -1,5 +1,7 @@
 #!/bin/sh
 
+TTY=$(tty)
+
 set -e
 
 : ${WHALER_PATH:=}; export WHALER_PATH
@@ -9,8 +11,15 @@ if [ ! -z "$WHALER_PATH" ]; then
     WHALER_VOLUME="-v $WHALER_PATH:/usr/local/lib/node_modules/whaler"
 fi
 
-DOCKER_OPTS="-t"
 if [ -z "$WHALER_FRONTEND" ]; then
+    WHALER_FRONTEND="noninteractive"
+    if [ "not a tty" != "$TTY" ]; then
+        WHALER_FRONTEND="interactive"
+    fi
+fi
+
+DOCKER_OPTS="-t"
+if [ "interactive" = "$WHALER_FRONTEND" ]; then
     DOCKER_OPTS="-it"
 fi
 

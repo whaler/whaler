@@ -70,7 +70,7 @@ module.exports = function(whaler) {
                 if (err) {
                     return callback(err);
                 }
-                return callback(null, [data]);
+                return callback(null, data);
             });
         } else {
             if (name) {

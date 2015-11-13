@@ -92,11 +92,11 @@ module.exports = function(whaler) {
                         console.warn('[%s] Container "%s.%s" already stopped.', process.pid, name, appName, '\n');
 
                     } else {
-                        console.info('[%s] Stopping "%s.%s" container.', process.pid, name, appName,'\n');
+                        console.info('[%s] Stopping "%s.%s" container.', process.pid, name, appName, '\n');
 
                         var data = yield containerStop(container, {});
 
-                        console.info('[%s] Container "%s.%s" stopped.', process.pid, name, appName,'\n');
+                        console.info('[%s] Container "%s.%s" stopped.', process.pid, name, appName, '\n');
                     }
 
                     containers[name] = container;

@@ -70,33 +70,18 @@ if (-1 !== index && argv[index + 1]) {
 
 } else {
 
-    var Q = require('q');
-    var pkg = require('../package.json');
     var progress = require('../lib/progress');
-    var logo = fs.readFileSync(path.dirname(__dirname) + '/logo.txt', 'utf8');
-    var Whaler = require('../index');
-
-    var prepareAuthor = function(author) {
-        if (typeof author == 'string') {
-            return author;
-        }
-        return author.name + ' <' + author.email + '> (' + author.url + ')';
-    };
-
     if (!argv.length) {
-        console.log('');
-        console.info(logo);
-        console.warn('      Version: ', pkg.version);
-        console.warn('      Author: ', prepareAuthor(pkg.author));
-        console.warn('      URL: ', pkg.homepage);
-        console.log('');
-        progress.start(6);
+        console.log('\n', require('../header'), '\n');
+        progress.start(2);
     } else {
         progress.start();
     }
 
-    var whaler = new Whaler();
+    var Q = require('q');
+    var Whaler = require('../index');
 
+    var whaler = new Whaler();
     var app = Q.async(function*() {
         var modules = yield Q.denodeify(function(callback) {
             whaler.modules.list(callback);
@@ -109,7 +94,13 @@ if (-1 !== index && argv[index + 1]) {
             whaler.plugins.list(callback);
         })();
         plugins.forEach(function(name) {
-            whaler.plugins.require(name)(whaler);
+            try {
+                whaler.plugins.require(name)(whaler);
+            } catch (e) {
+                progress.stop();
+                console.log('');
+                console.error('[%s] %s: %s', ' '.repeat(argv.length ? 0 : 2), process.pid, name, e.message, '\n');
+            }
         });
     })();
 

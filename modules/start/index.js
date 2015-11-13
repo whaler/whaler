@@ -226,7 +226,7 @@ module.exports = function(whaler) {
                     }
 
                     if (needStart) {
-                        console.info('[%s] Starting "%s.%s" container.', process.pid, name, appName,'\n');
+                        console.info('[%s] Starting "%s.%s" container.', process.pid, name, appName, '\n');
 
                         info = yield containerInspect(container);
 
@@ -252,7 +252,7 @@ module.exports = function(whaler) {
 
                         info = yield containerInspect(container);
 
-                        console.info('[%s] Container "%s.%s" started.', process.pid, name, appName,'\n');
+                        console.info('[%s] Container "%s.%s" started.', process.pid, name, appName, '\n');
                     }
 
                     extraHosts.push(name + ':' + info['NetworkSettings']['IPAddress']);

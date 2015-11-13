@@ -101,14 +101,14 @@ module.exports = function(whaler) {
                     var name = names.shift();
                     var container = whaler.docker.getContainer(name + '.' + appName);
 
-                    console.info('[%s] Removing "%s.%s" container.', process.pid, name, appName,'\n');
+                    console.info('[%s] Removing "%s.%s" container.', process.pid, name, appName, '\n');
 
                     yield containerRemove(container, {
                         v: true,
                         force: true
                     });
 
-                    console.info('[%s] Container "%s.%s" removed.', process.pid, name, appName,'\n');
+                    console.info('[%s] Container "%s.%s" removed.', process.pid, name, appName, '\n');
                 }
 
                 if (!containerName && options['purge']) {
@@ -116,7 +116,7 @@ module.exports = function(whaler) {
 
                     deleteFolderRecursive('/var/lib/whaler/volumes/' + appName);
 
-                    console.warn('[%s] Application "%s" removed.', process.pid, appName,'\n');
+                    console.warn('[%s] Application "%s" removed.', process.pid, appName, '\n');
                 }
 
             })();

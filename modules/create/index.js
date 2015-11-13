@@ -99,7 +99,7 @@ module.exports = function(whaler) {
                     var name = names.shift();
                     var config = appConfig['data'][name];
 
-                    console.info('[%s] Creating "%s.%s" container.', process.pid, name, appName,'\n');
+                    console.info('[%s] Creating "%s.%s" container.', process.pid, name, appName, '\n');
 
                     config['env'] = config['env'] || [];
                     for (var v in vars) {
@@ -244,7 +244,7 @@ module.exports = function(whaler) {
 
                     var container = yield createContainer(createOpts);
 
-                    console.info('[%s] Container "%s.%s" created.', process.pid, name, appName,'\n');
+                    console.info('[%s] Container "%s.%s" created.', process.pid, name, appName, '\n');
 
                     containers[name] = container;
                 }

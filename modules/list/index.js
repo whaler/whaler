@@ -106,7 +106,7 @@ module.exports = function(whaler) {
             })();
 
             promise.done(function(response) {
-                callback(null, [response]);
+                callback(null, response);
             }, function(err) {
                 callback(err);
             });

@@ -1,7 +1,11 @@
 {
   "name": "whaler",
   "description": "Define and run multi-container applications with Docker",
-  "author": "Sergei Vizel <sergei.vizel@gmail.com> (https://github.com/cravler)",
+  "author": {
+    "name": "Sergei Vizel",
+    "email": "sergei.vizel@gmail.com",
+    "url": "https://github.com/cravler"
+  },
   "homepage": "https://github.com/cravler/whaler",
   "keywords": [
     "whale",
@@ -11,7 +15,7 @@
     "fig"
   ],
   "license": "MIT",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "main": "index.js",
   "bin": {
     "whaler": "bin/whaler"
