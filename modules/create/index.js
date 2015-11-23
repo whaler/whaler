@@ -130,7 +130,7 @@ module.exports = function(whaler) {
                                 '/etc/whaler/bin/me:/usr/bin/@me',
                                 '/etc/whaler/bin/me:/usr/bin/@whaler'
                             ],
-                            PortBindings: {}
+                            'PortBindings': {}
                         }
                     };
 

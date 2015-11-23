@@ -92,7 +92,7 @@ module.exports = function(whaler) {
 
     whaler.events.on('run', function(options, callback) {
         options['ref'] = whaler.helpers.getRef(options['ref']);
-        options['cmd'] = options['cmd'] || '/bin/sh';
+        options['cmd'] = options['cmd'] || process.env['WHALER_RUN_CMD'] || '/bin/sh';
         options['tty'] = 'boolean' === typeof options['tty'] ? options['tty'] : false;
 
         if ('string' === typeof options['cmd']) {

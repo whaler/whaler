@@ -30,8 +30,8 @@ if (-1 !== index && argv[index + 1]) {
     }
 
     try {
-        var key = fs.readFileSync(process.env.HOME + '/.whaler/' + host + '.key');
-        var cert = fs.readFileSync(process.env.HOME + '/.whaler/' + host + '.crt');
+        var key = fs.readFileSync(process.env.HOME + '/.whaler/ssl/' + host + '.key');
+        var cert = fs.readFileSync(process.env.HOME + '/.whaler/ssl/' + host + '.crt');
     } catch (e) {}
 
     var options = {
