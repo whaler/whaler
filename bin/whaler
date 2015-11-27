@@ -40,6 +40,11 @@ if (-1 !== index && argv[index + 1]) {
         rejectUnauthorized: false
     };
 
+    var lh = ['127.0.0.1', 'localhost', 'whaler'];
+    if (-1 !== lh.indexOf(host)) {
+        host = process.env.WHALER_DOCKER_IP || '172.17.0.1';
+    }
+
     var client = tls.connect(port, host, options);
 
     client.on('error', function(err) {

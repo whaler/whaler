@@ -36,7 +36,7 @@ var addCmd = function(whaler) {
                 return console.error('[%s] %s', process.pid, err.message, '\n');
             }
 
-            var name = whaler.helpers.getName(name);
+            var name = whaler.helpers.getName(opts.name);
             if (opts.update) {
                 console.info('[%s] Application "%s" config updated.', process.pid, name, '\n');
             } else if (opts.setEnv) {

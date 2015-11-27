@@ -1,6 +1,7 @@
 #!/bin/sh
 
 TTY=$(tty)
+WHALER_DOCKER_IP=$(/sbin/ifconfig docker0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 
 set -e
 
@@ -29,6 +30,7 @@ docker run $DOCKER_OPTS --rm \
 $WHALER_VOLUME \
 -w `pwd` \
 -e "WHALER_FRONTEND=$WHALER_FRONTEND" \
+-e "WHALER_DOCKER_IP=$WHALER_DOCKER_IP" \
 --pid host \
 --volumes-from whaler \
 --name whaler_$$ \

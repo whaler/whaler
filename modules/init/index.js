@@ -48,7 +48,7 @@ module.exports = function(whaler) {
     whaler.events.on('init', function(options, callback) {
         options['name']   = whaler.helpers.getName(options['name']);
         options['path']   = whaler.helpers.getPath(options['path']);
-        options['env']    = options['env'] || process.env['WHALER_ENV'] || 'dev';
+        options['env']    = options['env'] || process.env.WHALER_ENV || 'dev';
         options['config'] = options['config'];
 
         whaler.apps.add(options['name'], {

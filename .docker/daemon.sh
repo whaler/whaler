@@ -1,5 +1,7 @@
 #!/bin/sh
 
+WHALER_DOCKER_IP=$(/sbin/ifconfig docker0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+
 set -e
 
 : ${WHALER_PATH:=}; export WHALER_PATH
@@ -21,6 +23,7 @@ $WHALER_VOLUME \
 -w /root/apps \
 -p $PORT:$PORT \
 --pid host \
+-e "WHALER_DOCKER_IP=$WHALER_DOCKER_IP" \
 --volumes-from whaler \
 --name whaler_daemon \
 node:4.2 \
