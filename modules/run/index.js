@@ -8,7 +8,10 @@ var addCmd = function(whaler) {
 
     whaler.cli.command(
         pkg.name + ' [ref] [cmd]'
-    ).description(
+    ).argumentsHelp({
+        'ref': 'Container name',
+        'cmd': 'Command to execute'
+    }).description(
         pkg.description
     ).option(
         '--no-tty',
@@ -26,11 +29,6 @@ var addCmd = function(whaler) {
             }
         });
 
-    }).on('--help', function() {
-        whaler.cli.argumentsHelp(this, {
-            'ref': 'Container name',
-            'cmd': 'Command to execute'
-        });
     });
 };
 

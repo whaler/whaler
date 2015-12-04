@@ -2,57 +2,86 @@
 
 var Table = require('cli-table');
 
-var addCmd = function(whaler) {
-    var pkg = require('./package.json');
+var emit = function(whaler, opts) {
     var console = whaler.require('./lib/console');
 
+    whaler.events.emit('plugins', opts, function(err, data) {
+        console.log('');
+        if (err) {
+            return console.error('[%s] %s', process.pid, err.message, '\n');
+        }
+
+        var action = opts['action'] || 'list';
+
+        if ('list' == action) {
+            var table = new Table({
+                head: [
+                    'Plugin name'
+                ],
+                style : {
+                    head: [ 'cyan' ]
+                }
+            });
+            while (data.length) {
+                var name = data.shift();
+                table.push([name]);
+            }
+            console.log(table.toString(), '\n');
+
+        } else {
+            var msg = 'Plugin ' + opts['name'] + ' removed.';
+            if ('install' == action) {
+                msg = 'Plugin ' + data['name'] + ' installed.';
+            }
+            console.info('[%s] %s', process.pid, msg, '\n');
+        }
+    });
+};
+
+var addCmd = function(whaler) {
+    var pkg = require('./package.json');
+
     whaler.cli.command(
-        pkg.name + ' [action] [name]'
+        pkg.name
     ).description(
         pkg.description
-    ).action(function(action, name, options) {
+    ).addSubCommands(function(cmd) {
+        cmd.defaultCommand('list');
 
-        var opts = {
-            action: action,
-            name: name
-        };
-
-        whaler.events.emit('plugins', opts, function(err, data) {
-            console.log('');
-            if (err) {
-                return console.error('[%s] %s', process.pid, err.message, '\n');
-            }
-
-            var action = opts['action'] || 'list';
-
-            if ('list' == action) {
-                var table = new Table({
-                    head: [
-                        'Plugin name'
-                    ],
-                    style : {
-                        head: [ 'cyan' ]
-                    }
-                });
-                while (data.length) {
-                    var name = data.shift();
-                    table.push([name]);
-                }
-                console.log(table.toString(), '\n');
-
-            } else {
-                var msg = 'Plugin ' + opts['name'] + ' removed.';
-                if ('install' == action) {
-                    msg = 'Plugin ' + data['name'] + ' installed.';
-                }
-                console.info('[%s] %s', process.pid, msg, '\n');
-            }
+        cmd.command(
+            'list'
+        ).description(
+            'Show installed plugins'
+        ).action(function(options) {
+            emit(whaler, {
+                action: 'list'
+            });
         });
 
-    }).on('--help', function() {
-        whaler.cli.argumentsHelp(this, {
-            'action': '*list, install, remove',
+        cmd.command(
+            'install <name>'
+        ).argumentsHelp({
             'name': 'Plugin name or path'
+        }).description(
+            'Install plugin'
+        ).action(function(name, options) {
+            emit(whaler, {
+                action: 'install',
+                name: name
+            });
+        });
+
+        cmd.command(
+            'remove <name>'
+        ).argumentsHelp({
+            'name': 'Plugin name'
+        }).description(
+            'Remove plugin'
+        ).action(function(name, options) {
+            emit(whaler, {
+                action: 'remove',
+                name: name
+            });
         });
     });
 };

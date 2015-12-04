@@ -6,7 +6,10 @@ var addCmd = function(whaler) {
 
     whaler.cli.command(
         pkg.name + ' [name] [path]'
-    ).description(
+    ).argumentsHelp({
+        'name': 'Application name',
+        'path': 'Application path'
+    }).description(
         pkg.description
     ).option(
         '-e, --env <ENV>',
@@ -33,11 +36,6 @@ var addCmd = function(whaler) {
             console.info('[%s] An application with "%s" name created.', process.pid, name, '\n');
         });
 
-    }).on('--help', function() {
-        whaler.cli.argumentsHelp(this, {
-            'name': 'Application name',
-            'path': 'Application path'
-        });
     });
 };
 

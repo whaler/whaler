@@ -9,7 +9,9 @@ var addCmd = function(whaler) {
 
     whaler.cli.command(
         pkg.name + ' [name]'
-    ).description(
+    ).argumentsHelp({
+        'name': 'Application name'
+    }).description(
         pkg.description
     ).action(function(name, options) {
 
@@ -38,10 +40,6 @@ var addCmd = function(whaler) {
             console.log(table.toString(), '\n');
         });
 
-    }).on('--help', function() {
-        whaler.cli.argumentsHelp(this, {
-            'name': 'Application name'
-        });
     });
 };
 

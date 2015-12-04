@@ -3,59 +3,92 @@
 var Table = require('cli-table');
 var Datastore = require('nedb');
 
-var addCmd = function(whaler) {
-    var pkg = require('./package.json');
+var emit = function(whaler, opts) {
     var console = whaler.require('./lib/console');
 
+    whaler.events.emit('vars', opts, function(err, vars) {
+        console.log('');
+        if (err) {
+            return console.error('[%s] %s', process.pid, err.message, '\n');
+        }
+
+        var action = opts['action'] || 'list';
+
+        if ('list' == action) {
+            var table = new Table({
+                head: [
+                    'Name',
+                    'Value'
+                ],
+                style : {
+                    head: [ 'cyan' ]
+                }
+            });
+            for (var v in vars) {
+                var value = vars[v];
+                if (undefined == value) {
+                    value = 'undefined';
+                }
+                table.push([v, value]);
+            }
+            console.log(table.toString(), '\n');
+
+        } else {
+            var msg = 'Unset: ' + opts['name'];
+            if ('set' == action) {
+                msg = 'Set: ' + opts['name'] + '=' + opts['value'];
+            }
+            console.info('[%s] %s', process.pid, msg, '\n');
+        }
+    });
+};
+
+var addCmd = function(whaler) {
+    var pkg = require('./package.json');
+
     whaler.cli.command(
-        pkg.name + ' [action] [name] [value]'
+        pkg.name
     ).description(
         pkg.description
-    ).action(function(action, name, value, options) {
+    ).addSubCommands(function(cmd) {
+        cmd.defaultCommand('list');
 
-        var opts = {
-            action: action,
-            name: name,
-            value: value
-        };
-
-        whaler.events.emit('vars', opts, function(err, vars) {
-            console.log('');
-            if (err) {
-                return console.error('[%s] %s', process.pid, err.message, '\n');
-            }
-
-            var action = opts['action'] || 'list';
-
-            if ('list' == action) {
-                var table = new Table({
-                    head: [
-                        'Name',
-                        'Value'
-                    ],
-                    style : {
-                        head: [ 'cyan' ]
-                    }
-                });
-                for (var v in vars) {
-                    table.push([v, vars[v]]);
-                }
-                console.log(table.toString(), '\n');
-
-            } else {
-                var msg = 'Unset: ' + opts['name'];
-                if ('set' == action) {
-                    msg = 'Set: ' + opts['name'] + '=' + opts['value'];
-                }
-                console.info('[%s] %s', process.pid, msg, '\n');
-            }
+        cmd.command(
+            'list'
+        ).description(
+            'Show vars'
+        ).action(function(options) {
+            emit(whaler, {
+                action: 'list'
+            });
         });
 
-    }).on('--help', function() {
-        whaler.cli.argumentsHelp(this, {
-            'action': '*list, set, unset',
+        cmd.command(
+            'set <name> [value]'
+        ).argumentsHelp({
             'name': 'Var name',
             'value': 'Var value'
+        }).description(
+            'Set var'
+        ).action(function(name, value, options) {
+            emit(whaler, {
+                action: 'set',
+                name: name,
+                value: value
+            });
+        });
+
+        cmd.command(
+            'unset <name>'
+        ).argumentsHelp({
+            'name': 'Var name'
+        }).description(
+            'Unset var'
+        ).action(function(name, options) {
+            emit(whaler, {
+                action: 'unset',
+                name: name
+            });
         });
     });
 };
@@ -101,8 +134,10 @@ module.exports = function(whaler) {
                         callback(null);
 
                     } else {
+                        var value = options['value'];
+
                         if (v) {
-                            var update = { value: options['value'] };
+                            var update = { value: value };
                             vars.update({ _id: v['_id'] }, { $set: update }, {}, function(err) {
                                 if (err) {
                                     return callback(err);
@@ -113,7 +148,7 @@ module.exports = function(whaler) {
                         } else {
                             v = {
                                 _id:  name,
-                                value: options['value']
+                                value: value
                             };
 
                             vars.insert(v, function(err, doc) {

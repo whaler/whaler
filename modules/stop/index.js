@@ -8,7 +8,9 @@ var addCmd = function(whaler) {
 
     whaler.cli.command(
         pkg.name + ' [ref]'
-    ).description(
+    ).argumentsHelp({
+        'ref': 'Application or container name'
+    }).description(
         pkg.description
     ).action(function(ref, options) {
 
@@ -21,10 +23,6 @@ var addCmd = function(whaler) {
             }
         });
 
-    }).on('--help', function() {
-        whaler.cli.argumentsHelp(this, {
-            'ref': 'Application or container name'
-        });
     });
 };
 
