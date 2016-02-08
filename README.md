@@ -1,5 +1,7 @@
 # Whaler
 
+![Whaler](whaler.png)
+
 ## Install
 
 ```sh

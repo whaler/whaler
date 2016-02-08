@@ -4,91 +4,54 @@ var fs = require('fs');
 var tls = require('tls');
 var pty = require('pty.js');
 
-var addCmd = function(whaler) {
-    var pkg = require('./package.json');
-    var console = whaler.require('./lib/console');
+module.exports = exports;
+module.exports.__cmd = require('./cmd');
 
-    whaler.cli.command(
-        pkg.name
-    ).description(
-        pkg.description
-    ).option(
-        '--port <PORT>',
-        'Port to use'
-    ).action(function(options) {
+/**
+ * @param whaler
+ */
+function exports(whaler) {
 
-        whaler.events.emit('daemon', {
-            port: options.port
-        }, function(err) {
-            if (err) {
-                console.log('');
-                return console.error('[%s] %s', process.pid, err.message, '\n');
-            }
-        });
-
-    });
-};
-
-module.exports = function(whaler) {
-
-    addCmd(whaler);
-
-    var console = whaler.require('./lib/console');
-
-    whaler.events.on('daemon', function(options, callback) {
-
-        var dir = process.env.HOME + '/apps';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir);
-        }
-
-        var opts = {
-            key:  fs.readFileSync('/etc/whaler/ssl/server.key'),
-            cert: fs.readFileSync('/etc/whaler/ssl/server.crt'),
+    whaler.on('daemon', function* (options) {
+        const dir = options['dir'];
+        const cmd = whaler.path + '/bin/whaler';
+        const opts = {
+            key:  yield fs.readFile.$call(null, '/etc/whaler/ssl/server.key'),
+            cert: yield fs.readFile.$call(null, '/etc/whaler/ssl/server.crt'),
             ca: [
-                fs.readFileSync('/etc/whaler/ssl/ca.crt')
+                yield fs.readFile.$call(null, '/etc/whaler/ssl/ca.crt')
             ],
             rejectUnauthorized: true,
             requestCert: true
         };
 
-        var server = tls.createServer(opts, function(socket) {
+        try {
+            yield fs.stat.$call(null, dir);
+        } catch (e) {
+            yield fs.mkdir.$call(null, dir);
+        }
+
+        return tls.createServer(opts, (socket) => {
             if (socket.authorized) {
-                socket.once('data', function(data) {
+                socket.once('data', (data) => {
                     data = JSON.parse(data.toString());
 
                     process.env.WHALER_DAEMON_DIR  = dir;
                     process.env.WHALER_DAEMON_NAME = data['name'];
 
-                    var xterm = pty.spawn(whaler.path + '/bin/whaler', data['argv'], {
+                    var xterm = pty.spawn(cmd, data['argv'], {
                         cwd: dir,
                         env: process.env
                     });
 
                     socket.pipe(xterm);
                     xterm.pipe(socket);
-                    xterm.on('exit', function(code) {
+                    xterm.on('exit', (code) => {
                         socket.end();
                     });
                 });
             }
         });
-
-        var port = 1337;
-        if (options['port']) {
-            port = options['port'];
-        }
-
-        server.listen(port, function() {
-            console.warn('[%s] Daemon start listening %s port.', process.pid, port);
-        });
-
-        var exit = function() {
-            process.removeListener('SIGINT', exit);
-            server.close();
-            process.stdout.write('\n');
-            callback(null);
-        };
-        process.on('SIGINT', exit);
     });
-};
+
+}

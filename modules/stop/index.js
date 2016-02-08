@@ -1,113 +1,73 @@
 'use strict';
 
-var Q = require('q');
+var console = require('x-console');
 
-var addCmd = function(whaler) {
-    var pkg = require('./package.json');
-    var console = whaler.require('./lib/console');
+module.exports = exports;
+module.exports.__cmd = require('./cmd');
 
-    whaler.cli.command(
-        pkg.name + ' [ref]'
-    ).argumentsHelp({
-        'ref': 'Application or container name'
-    }).description(
-        pkg.description
-    ).action(function(ref, options) {
+/**
+ * @param whaler
+ */
+function exports(whaler) {
 
-        whaler.events.emit('stop', {
-            ref: ref
-        }, function(err, containers) {
-            if (err) {
-                console.log('');
-                return console.error('[%s] %s', process.pid, err.message, '\n');
-            }
-        });
+    whaler.on('stop', function* (options) {
+        let appName = options['ref'];
+        let serviceName = null;
 
-    });
-};
-
-module.exports = function(whaler) {
-
-    addCmd(whaler);
-
-    var console = whaler.require('./lib/console');
-
-    var listContainers = Q.denodeify(whaler.docker.listContainers);
-    var containerInspect = Q.denodeify(function(container, callback) {
-        container.inspect(callback);
-    });
-    var containerStop = Q.denodeify(function(container, opts, callback) {
-        container.stop(opts, callback);
-    });
-
-    whaler.events.on('stop', function(options, callback) {
-        options['ref'] = whaler.helpers.getRef(options['ref']);
-
-        var appName = options['ref'];
-        var containerName = null;
-
-        var parts = options['ref'].split('.');
+        const parts = options['ref'].split('.');
         if (2 == parts.length) {
             appName = parts[1];
-            containerName = parts[0];
+            serviceName = parts[0];
         }
 
-        whaler.apps.get(appName, function(err, app) {
-            var promise = Q.async(function*() {
-                if (err) {
-                    throw err;
-                }
+        const docker = whaler.get('docker');
+        const storage = whaler.get('apps');
+        const app = yield storage.get.$call(storage, appName);
+        const containers = {};
+        const services = [];
 
-                var names = [];
+        if (serviceName) {
+            services.push(serviceName);
 
-                if (containerName) {
-                    names.push(containerName);
-                } else {
-                    var containers = yield listContainers({
-                        all: false,
-                        filters: JSON.stringify({
-                            name: [
-                                whaler.helpers.getDockerFiltersNamePattern(appName)
-                            ]
-                        })
-                    });
-
-                    while (containers.length) {
-                        var data = containers.shift();
-                        var parts = data['Names'][0].substr(1).split('.');
-                        names.push(parts[0]);
-                    }
-                }
-
-                var containers = {};
-                while (names.length) {
-                    var name = names.shift();
-                    var container = whaler.docker.getContainer(name + '.' + appName);
-
-                    var info = yield containerInspect(container);
-
-                    if (!info['State']['Running']) {
-                        console.warn('[%s] Container "%s.%s" already stopped.', process.pid, name, appName, '\n');
-
-                    } else {
-                        console.info('[%s] Stopping "%s.%s" container.', process.pid, name, appName, '\n');
-
-                        var data = yield containerStop(container, {});
-
-                        console.info('[%s] Container "%s.%s" stopped.', process.pid, name, appName, '\n');
-                    }
-
-                    containers[name] = container;
-                }
-
-                return containers;
-            })();
-
-            promise.done(function(containers) {
-                callback(null, containers);
-            }, function(err) {
-                callback(err);
+        } else {
+            const containers = yield docker.listContainers.$call(docker, {
+                all: false,
+                filters: JSON.stringify({
+                    name: [
+                        docker.util.nameFilter(appName)
+                    ]
+                })
             });
-        });
+
+            for (let data of containers) {
+                const parts = data['Names'][0].substr(1).split('.');
+                services.push(parts[0]);
+            }
+        }
+
+        for (let name of services) {
+            const container = docker.getContainer(name + '.' + appName);
+
+            const info = yield container.inspect.$call(container);
+
+            if (!info['State']['Running']) {
+                console.warn('');
+                console.warn('[%s] Container "%s.%s" already stopped.', process.pid, name, appName);
+
+            } else {
+                console.info('');
+                console.info('[%s] Stopping "%s.%s" container.', process.pid, name, appName);
+
+                yield container.stop.$call(container, {});
+
+                console.info('');
+                console.info('[%s] Container "%s.%s" stopped.', process.pid, name, appName);
+            }
+
+            containers[name] = container;
+        }
+
+        return containers;
     });
-};
+
+}

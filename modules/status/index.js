@@ -1,120 +1,63 @@
 'use strict';
 
-var Q = require('q');
-var Table = require('cli-table');
+module.exports = exports;
+module.exports.__cmd = require('./cmd');
 
-var addCmd = function(whaler) {
-    var pkg = require('./package.json');
-    var console = whaler.require('./lib/console');
+/**
+ * @param whaler
+ */
+function exports(whaler) {
 
-    whaler.cli.command(
-        pkg.name + ' [name]'
-    ).argumentsHelp({
-        'name': 'Application name'
-    }).description(
-        pkg.description
-    ).action(function(name, options) {
+    whaler.on('status', function* (options) {
+        const docker = whaler.get('docker');
+        const storage = whaler.get('apps');
+        const app = yield storage.get.$call(storage, options['name']);
 
-        whaler.events.emit('status', {
-            name: name
-        }, function(err, response) {
-            console.log('');
-            if (err) {
-                return console.error('[%s] %s', process.pid, err.message, '\n');
-            }
+        const response = [];
+        const services = Object.keys(app.config['data']);
 
-            var table = new Table({
-                head: [
-                    'Container name',
-                    'Status',
-                    'IP'
-                ],
-                style : {
-                    head: [ 'cyan' ]
-                }
-            });
-            while (response.length) {
-                var data = response.shift();
-                table.push(data);
-            }
-            console.log(table.toString(), '\n');
+        const containers = yield docker.listContainers.$call(docker, {
+            all: true,
+            filters: JSON.stringify({
+                name: [
+                    docker.util.nameFilter(options['name'])
+                ]
+            })
         });
 
-    });
-};
+        for (let data of containers) {
+            const parts = data['Names'][0].substr(1).split('.');
+            if (-1 == services.indexOf(parts[0])) {
+                services.push(parts[0]);
+            }
+        }
 
-module.exports = function(whaler) {
+        for (let name of services) {
+            const container = docker.getContainer(name + '.' + options['name']);
 
-    addCmd(whaler);
+            let ip = '-';
+            let status = 'NOT CREATED';
+            const color = app.config['data'][name] ? null : 'red';
 
-    var listContainers = Q.denodeify(whaler.docker.listContainers);
-    var containerInspect = Q.denodeify(function(container, callback) {
-        container.inspect(callback);
-    });
-
-    whaler.events.on('status', function(options, callback) {
-        options['name'] = whaler.helpers.getName(options['name']);
-
-        whaler.apps.get(options['name'], function(err, app) {
-            var promise = Q.async(function*() {
-                if (err) {
-                    throw err;
+            try {
+                const info = yield container.inspect.$call(container);
+                if (info['State']['Running']) {
+                    status = 'ON';
+                    ip = info['NetworkSettings']['IPAddress'];
+                } else {
+                    status = 'OFF';
                 }
+            } catch (e) {}
 
-                var response = [];
-                var names = Object.keys(app.config['data']);
+            const appName = name + '.' + options['name'];
+            response.push([
+                color ? appName[color] : appName,
+                status,
+                ip
+            ]);
+        }
 
-                var containers = yield listContainers({
-                    all: true,
-                    filters: JSON.stringify({
-                        name: [
-                            whaler.helpers.getDockerFiltersNamePattern(options['name'])
-                        ]
-                    })
-                });
-
-                while (containers.length) {
-                    var data = containers.shift();
-                    var parts = data['Names'][0].substr(1).split('.');
-                    if (-1 == names.indexOf(parts[0])) {
-                        names.push(parts[0]);
-                    }
-                }
-
-                while (names.length) {
-                    var name = names.shift();
-                    var container = whaler.docker.getContainer(name + '.' + options['name']);
-
-                    var ip = '-';
-                    var status = 'NOT CREATED';
-                    var color = app.config['data'][name] ? null : 'red';
-
-                    try {
-                        var info = yield containerInspect(container);
-                        if (info['State']['Running']) {
-                            status = 'ON';
-                            ip = info['NetworkSettings']['IPAddress'];
-                        } else {
-                            status = 'OFF';
-                        }
-                    } catch (e) {}
-
-                    var appName = name + '.' + options['name'];
-                    response.push([
-                        color ? appName[color] : appName,
-                        status,
-                        ip
-                    ]);
-                }
-
-                return response;
-            })();
-
-            promise.done(function(response) {
-                callback(null, response);
-            }, function(err) {
-                callback(err);
-            });
-        });
+        return response;
     });
-};
+
+}

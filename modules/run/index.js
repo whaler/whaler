@@ -1,257 +1,201 @@
 'use strict';
 
-var Q = require('q');
+module.exports = exports;
+module.exports.__cmd = require('./cmd');
 
-var addCmd = function(whaler) {
-    var pkg = require('./package.json');
-    var console = whaler.require('./lib/console');
+/**
+ * @param whaler
+ */
+function exports(whaler) {
 
-    whaler.cli.command(
-        pkg.name + ' [ref] [cmd]'
-    ).argumentsHelp({
-        'ref': 'Container name',
-        'cmd': 'Command to execute'
-    }).description(
-        pkg.description
-    ).option(
-        '--no-tty',
-        'Disable tty binding'
-    ).action(function(ref, cmd, options) {
+    whaler.on('run', function* (options) {
+        let appName = options['ref'];
+        let serviceName = null;
 
-        whaler.events.emit('run', {
-            ref: ref,
-            cmd: cmd,
-            tty: options.tty
-        }, function(err, data) {
-            if (err) {
-                console.log('');
-                return console.error('[%s] %s', process.pid, err.message, '\n');
-            }
+        const parts = options['ref'].split('.');
+        if (2 == parts.length) {
+            appName = parts[1];
+            serviceName = parts[0];
+        }
+
+        if (!serviceName) {
+            throw new Error('Command requires to specify a service name.');
+        }
+
+        const docker = whaler.get('docker');
+        const storage = whaler.get('apps');
+        const app = yield storage.get.$call(storage, appName);
+
+        const containers = yield docker.listContainers.$call(docker, {
+            all: false,
+            filters: JSON.stringify({
+                name: [
+                    docker.util.nameFilter(appName)
+                ]
+            })
         });
 
-    });
-};
+        const extraHosts = [];
+        if (containers) {
+            for (let data of containers) {
+                const parts = data['Names'][0].substr(1).split('.');
+                try {
+                    const container = docker.getContainer(data['Id']);
+                    const info = yield container.inspect.$call(container);
+                    extraHosts.push(parts[0] + ':' + info['NetworkSettings']['IPAddress']);
+                } catch (e) {}
+            }
+        }
 
-module.exports = function(whaler) {
+        const serviceContainer = docker.getContainer(serviceName + '.' + appName);
+        const info = yield serviceContainer.inspect.$call(serviceContainer);
+        const attachStdin = options['tty'];
 
-    addCmd(whaler);
+        if ('string' === typeof options['cmd']) {
+            options['cmd'] = docker.util.parseCmd(options['cmd']);
+        }
 
-    var console = whaler.require('./lib/console');
+        const createOpts = {
+            'name': serviceName + '.' + appName + '_pty_' + process.pid,
+            'Cmd': options['cmd'],
+            'Env': info['Config']['Env'],
+            'Image': info['Config']['Image'],
+            'WorkingDir': info['Config']['WorkingDir'],
+            'Entrypoint': info['Config']['Entrypoint'],
+            'StdinOnce': false,
+            'AttachStdin': attachStdin,
+            'AttachStdout': true,
+            'AttachStderr': true,
+            'OpenStdin': attachStdin,
+            'Tty': true
+        };
 
-    var listContainers = Q.denodeify(whaler.docker.listContainers);
-    var createContainer = Q.denodeify(whaler.docker.createContainer);
-    var containerInspect = Q.denodeify(function(container, callback) {
-        container.inspect(callback);
-    });
-    var containerWait = Q.denodeify(function(container, callback) {
-        container.wait(callback);
-    });
-    var containerStart = Q.denodeify(function(container, opts, callback) {
-        container.start(opts, callback);
-    });
-    var containerAttach = Q.denodeify(function(container, opts, callback) {
-        container.attach(opts, callback);
-    });
+        const startOpts = {
+            'ExtraHosts': extraHosts,
+            'Binds': info['HostConfig']['Binds']
+        };
 
-    // Resize tty
-    var resize = function(container) {
-        var dimensions = {
+        const container = yield docker.createContainer.$call(docker, createOpts);
+
+        container.run = function* () {
+
+            let err = null;
+            let data = null;
+
+            let revertPipe = function() {};
+            let revertResize = function() {};
+
+            try {
+                const stream = yield container.attach.$call(container, {
+                    stream: true,
+                    stdin: attachStdin,
+                    stdout: true,
+                    stderr: true
+                });
+
+                revertPipe = pipe(stream, attachStdin);
+
+                yield container.start.$call(container, startOpts);
+
+                if (attachStdin) {
+                    revertResize = resize(container);
+                }
+
+                data = yield container.wait.$call(container);
+
+            } catch (e) {
+                err = e;
+            }
+
+            revertPipe();
+            revertResize();
+
+            if (err) {
+                throw err;
+            }
+
+            return data;
+        };
+
+        container.exit = function* () {
+            try {
+                yield container.remove.$call(container, {
+                    v: true,
+                    force: true
+                });
+            } catch (e) {}
+        };
+
+        return container;
+    });
+}
+
+// PRIVATE
+
+/**
+ * @param stream
+ * @param attachStdin
+ * @returns {Function}
+ */
+function pipe(stream, attachStdin) {
+
+    stream.setEncoding('utf8');
+    stream.pipe(process.stdout, { end: false });
+
+    //const CTRL_C = '\u0003';
+    //const CTRL_D = '\u0004';
+    const isRaw = process.isRaw;
+    //const keyPress = function(key) {
+    //    if (key === CTRL_C || key === CTRL_D) {
+    //        process.stdout.write('exit');
+    //        stream.end();
+    //    }
+    //};
+
+    if (attachStdin) {
+        process.stdin.resume();
+        process.stdin.setRawMode(true);
+        process.stdin.pipe(stream);
+        //process.stdin.on('data', keyPress);
+    }
+
+    return function revert() {
+        if (stream.end) {
+            stream.end();
+        }
+
+        stream.unpipe(process.stdout);
+
+        if (attachStdin) {
+            //process.stdin.removeListener('data', keyPress);
+            process.stdin.unpipe(stream);
+            process.stdin.setRawMode(isRaw);
+            process.stdin.resume();
+            process.stdin.pause();
+        }
+    }
+}
+
+/**
+ * Resize tty
+ * @param container
+ */
+function resize(container) {
+    const resizeContainer = function() {
+        const dimensions = {
             h: process.stdout.rows,
             w: process.stderr.columns
         };
 
         if (dimensions.h != 0 && dimensions.w != 0) {
-            container.resize(dimensions, function() {});
+            container.resize(dimensions, () => {});
         }
     };
 
-    // Exit container
-    var exit = function(stdin, container, stream, isRaw) {
-        if (stream) {
-            if (stdin) {
-                process.stdin.removeAllListeners();
-                process.stdin.setRawMode(isRaw);
-                process.stdin.resume();
-            }
+    resizeContainer();
+    process.stdout.on('resize', resizeContainer);
 
-            if (stream.end) {
-                stream.end();
-            }
-        }
-
-        if (container) {
-            container.remove({}, function() {
-                if (stdin) {
-                    process.exit();
-                }
-            });
-        }
-    };
-
-    whaler.events.on('run', function(options, callback) {
-        options['ref'] = whaler.helpers.getRef(options['ref']);
-        options['cmd'] = options['cmd'] || process.env.WHALER_RUN_CMD || '/bin/sh';
-        options['tty'] = 'boolean' === typeof options['tty'] ? options['tty'] : false;
-
-        if ('string' === typeof options['cmd']) {
-            options['cmd'] = whaler.docker.util.parseCmd(options['cmd']);
-        }
-
-        var CTRL_P = '\u0010';
-        var CTRL_Q = '\u0011';
-        var isRaw = undefined;
-        var previousKey = null;
-
-        var stdin = options['tty'];
-        var appName = options['ref'];
-        var containerName = null;
-
-        var parts = options['ref'].split('.');
-        if (2 == parts.length) {
-            appName = parts[1];
-            containerName = parts[0];
-        }
-
-        if (!containerName) {
-            return callback(
-                new Error('Command requires to specify a container name.')
-            );
-        }
-
-        whaler.apps.get(appName, function(err, app) {
-            var promise = Q.async(function*() {
-                if (err) {
-                    throw err;
-                }
-
-                var containers = yield listContainers({
-                    all: false,
-                    filters: JSON.stringify({
-                        name: [
-                            whaler.helpers.getDockerFiltersNamePattern(appName)
-                        ]
-                    })
-                });
-
-                var extraHosts = [];
-                if (containers) {
-                    while (containers.length) {
-                        var data = containers.shift();
-                        var parts = data['Names'][0].substr(1).split('.');
-                        try {
-                            var info = yield containerInspect(whaler.docker.getContainer(data['Id']));
-                            extraHosts.push(parts[0] + ':' + info['NetworkSettings']['IPAddress']);
-                        } catch (e) {}
-                    }
-                }
-
-                var info = yield containerInspect(whaler.docker.getContainer(containerName + '.' + appName));
-
-                var createOpts = {
-                    'name': containerName + '.' + appName + '_pty_' + process.pid,
-                    'Cmd': options['cmd'],
-                    'Env': info['Config']['Env'],
-                    'Image': info['Config']['Image'],
-                    'WorkingDir': info['Config']['WorkingDir'],
-                    'Entrypoint': info['Config']['Entrypoint'],
-                    'StdinOnce': false,
-                    'AttachStdin': stdin,
-                    'AttachStdout': true,
-                    'AttachStderr': true,
-                    'OpenStdin': stdin,
-                    'Tty': true
-                };
-
-                var startOpts = {
-                    'ExtraHosts': extraHosts,
-                    'Binds': info['HostConfig']['Binds']
-                };
-
-                var container = yield createContainer(createOpts);
-
-                try {
-                    var stream = yield containerAttach(container, {
-                        stream: true,
-                        stdin: stdin,
-                        stdout: true,
-                        stderr: true
-                    });
-                } catch (e) {
-                    exit(stdin, container);
-                    throw e;
-                }
-
-                stream.setEncoding('utf8');
-                stream.pipe(process.stdout, { end: true });
-
-                if (stdin) {
-                    isRaw = process.isRaw;
-                    process.stdin.resume();
-                    process.stdin.setEncoding('utf8');
-                    process.stdin.setRawMode(true);
-                    process.stdin.pipe(stream);
-
-                    process.stdin.on('data', function(key) {
-                        // Detects it is detaching a running container
-                        if (previousKey === CTRL_P && key === CTRL_Q) {
-                            exit(stdin, container, stream, isRaw);
-                        }
-                        previousKey = key;
-                    });
-                }
-
-                try {
-                    var data = yield containerStart(container, startOpts);
-                } catch (e) {
-                    exit(stdin, container, stream, isRaw);
-                    throw e;
-                }
-
-                if (stdin) {
-                    var resizeContainer = function() {
-                        resize(container);
-                    };
-                    resizeContainer();
-                    process.stdout.on('resize', resizeContainer);
-                } else {
-                    var killContainer = function() {
-                        container.kill({}, function(err, data) {
-                            console.log('');
-                            console.warn('[%s] %s', process.pid, 'Container killed', '\n');
-                        });
-                    };
-                    process.on('SIGINT', killContainer);
-                }
-
-                var err = null;
-                var data = null;
-                try {
-                    data = yield containerWait(container);
-                } catch (e) {
-                    err = e;
-                }
-
-                if (stdin) {
-                    process.stdout.removeListener('resize', resizeContainer);
-                } else {
-                    process.removeListener('SIGINT', killContainer);
-                }
-                exit(stdin, container, stream, isRaw);
-
-                if (err) {
-                    throw err;
-                }
-
-                if (!stdin) {
-                    return data;
-                }
-            })();
-
-            promise.done(function(data) {
-                callback(null, data);
-            }, function(err) {
-                callback(err);
-            });
-        });
-    });
-};
+    return function revert() {
+        process.stdout.removeListener('resize', resizeContainer);
+    }
+}

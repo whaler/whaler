@@ -4,13 +4,12 @@
 
 process.bin = process.title = 'whaler';
 
-var fs = require('fs');
-var tls = require('tls');
-var path = require('path');
-var console = require('../lib/console');
+var console = require('x-console');
+var Whaler = require('../index');
+
+var whaler = new Whaler();
 
 var argv = process.argv.slice(2);
-
 var index = argv.indexOf('-H');
 if (-1 === index) {
     index = argv.indexOf('--host');
@@ -19,107 +18,65 @@ if (-1 === index) {
 if (-1 !== index && argv[index + 1]) {
 
     var args = argv.splice(index, 2);
-
-    var host = args[1];
-    var port = 1337;
-
-    var arr = host.split(':');
-    if (2 == arr.length) {
-        host = arr[0];
-        port = arr[1];
-    }
-
-    try {
-        var key = fs.readFileSync(process.env.HOME + '/.whaler/ssl/' + host + '.key');
-        var cert = fs.readFileSync(process.env.HOME + '/.whaler/ssl/' + host + '.crt');
-    } catch (e) {}
-
-    var options = {
-        key: key,
-        cert: cert,
-        rejectUnauthorized: false
-    };
-
-    var lh = ['127.0.0.1', 'localhost', 'whaler'];
-    if (-1 !== lh.indexOf(host)) {
-        host = process.env.WHALER_DOCKER_IP || '172.17.0.1';
-    }
-
-    var client = tls.connect(port, host, options);
-
-    client.on('error', function(err) {
-        console.log('');
-        var message = err.message;
-        if ('EPROTO' == err.code) {
-            message = 'Protocol error';
-        }
-        console.error('[%s] %s', process.pid, message, '\n');
-        process.stdin.setRawMode(false);
-        process.exit();
-    });
-
-    client.on('end', function() {
-        process.stdin.setRawMode(false);
-        process.exit();
-    });
-
-    client.on('connect', function() {
-        process.stdin.setRawMode(true);
-        process.stdin.pipe(client);
-        client.pipe(process.stdout);
-        client.write(JSON.stringify({
-            name: path.basename(process.cwd()),
-            argv: argv
-        }));
-    });
+    whaler.get('client')(args[1], argv);
 
 } else {
 
-    var progress = require('../lib/progress');
+    var progress = whaler.get('progress');
     if (!argv.length) {
-        console.log('\n', require('../header'), '\n');
+        console.log('');
+        console.log(whaler.get('header'));
+        console.log('');
         progress.start(2);
     } else {
         progress.start();
     }
 
-    var Q = require('q');
-    var Whaler = require('../index');
+    (function* () {
+        whaler.init();
 
-    var whaler = new Whaler();
-    var app = Q.async(function*() {
-        var modules = yield Q.denodeify(function(callback) {
-            whaler.modules.list(callback);
-        })();
-        modules.forEach(function(name) {
-            whaler.require('./modules/' + name)(whaler);
-        });
+        const modules = whaler.get('modules');
+        const plugins = whaler.get('plugins');
 
-        var plugins = yield Q.denodeify(function(callback) {
-            whaler.plugins.list(callback);
-        })();
-        plugins.forEach(function(name) {
-            try {
-                whaler.plugins.require(name)(whaler);
-            } catch (e) {
-                progress.stop();
-                console.log('');
-                console.error('[%s] %s: %s', ' '.repeat(argv.length ? 0 : 2), process.pid, name, e.message, '\n');
+        for (let name of yield modules.list.$call(modules)) {
+            const module = whaler.require('./modules/' + name);
+            module(whaler);
+            if (module['__cmd']) {
+                module['__cmd'](whaler);
             }
-        });
-    })();
-
-    app.done(function() {
-        progress.stop();
-        if (!argv.length) {
-            whaler.cli.help();
-        } else {
-            whaler.cli.parse(process.argv);
         }
 
-    }, function(error) {
+        for (let name of yield plugins.list.$call(plugins)) {
+            try {
+                const plugin = plugins.require(name);
+                plugin(whaler);
+                if (plugin['__cmd']) {
+                    plugin['__cmd'](whaler);
+                }
+            } catch (e) {
+                progress.stop();
+                console.error('');
+                console.error('%s[%s] %s: %s', ' '.repeat(argv.length ? 0 : 2), process.pid, name, e.message);
+            }
+        }
+
+        return whaler.get('cli');
+
+    }).$async((err, cli) => {
         progress.stop();
-        console.log('');
-        console.error('[%s] %s', process.pid, error.message, '\n');
-    });
+
+        if (err) {
+            console.error('');
+            console.error('[%s] %s', process.pid, err.message);
+            console.error('');
+        }
+
+        if (!argv.length) {
+            cli.help();
+        } else {
+            cli.parse(process.argv);
+        }
+
+    })();
+
 }

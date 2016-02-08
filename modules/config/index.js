@@ -1,99 +1,101 @@
 'use strict';
 
 var fs = require('fs');
+var path = require('path');
 var YAML = require('yamljs');
 var util = require('dockerode/lib/util');
 
-var addCmd = function(whaler) {
-    var pkg = require('./package.json');
-    var console = whaler.require('./lib/console');
+module.exports = exports;
+module.exports.__cmd = require('./cmd');
 
-    whaler.cli.command(
-        pkg.name + ' [name]'
-    ).argumentsHelp({
-        'name': 'Application name'
-    }).description(
-        pkg.description
-    ).option(
-        '--update',
-        'Update config'
-    ).option(
-        '--config <CONFIG>',
-        'Config to use'
-    ).option(
-        '--set-env <ENV>',
-        'Set application environment'
-    ).action(function(name, options) {
+/**
+ * @param whaler
+ */
+function exports(whaler) {
 
-        var opts = {
-            name: name,
-            update: options.update,
-            config: options.config,
-            setEnv: options.setEnv
-        };
+    whaler.on('config', function* (options) {
+        const storage = whaler.get('apps');
 
-        whaler.events.emit('config', opts, function(err, config) {
-            console.log('');
-            if (err) {
-                return console.error('[%s] %s', process.pid, err.message, '\n');
+        const app = yield storage.get.$call(storage, options['name']);
+        const update = {};
+
+        if (options['setEnv']) {
+            app.env = update['env'] = options['setEnv'];
+        }
+
+        if (options['update']) {
+            update['config'] = yield loadConfig.$call(null, app, options);
+        }
+
+        if (Object.keys(update).length > 0) {
+            yield storage.update.$call(storage, options['name'], update);
+            return update['config'] || app.config;
+
+        } else {
+            let config = app.config;
+            if (options['config']) {
+                config = yield loadConfig.$call(null, app, options);
             }
 
-            var name = whaler.helpers.getName(opts.name);
-            if (opts.update) {
-                console.info('[%s] Application "%s" config updated.', process.pid, name, '\n');
-            } else if (opts.setEnv) {
-                console.info('[%s] Application "%s" env updated.', process.pid, name, '\n');
-            } else {
-                console.info(config.file, '\n');
-
-                var data = YAML.stringify(config.data, 4);
-                data = data.replace(/dockerfile: "(.*)\\n"/g, 'dockerfile: |\n        $1');
-                data = data.replace(/(\\n)/g, '\n        ');
-                console.log(data);
-            }
-        });
-
+            return config;
+        }
     });
-};
 
-var prepareConfigEnv = function(config, env) {
-    if ('object' === typeof config && Object.keys(config).length) {
-        var keys = Object.keys(config);
-        keys.forEach(function(key) {
-            if ('~' == key[0]) {
-                if ('~' + env == key) {
-                    config = util.extend({}, config, config[key]);
-                }
-                delete config[key];
-                config = prepareConfigEnv(config, env);
-            } else {
-                config[key] = prepareConfigEnv(config[key], env);
-            }
-        });
+}
+
+// PRIVATE
+
+/**
+ * @param app
+ * @param options
+ * @returns {Object}
+ */
+function loadConfig(app, options, callback) {
+    const file = options['config'] || app.config['file'] || app.path + '/whaler.yml';
+
+    if (!path.isAbsolute(file)) {
+        return callback(new Error('Config path must be absolute.'));
     }
 
-    return config;
-};
+    fs.readFile(file, 'utf8', (err, data) => {
+        if (err) {
+            return callback(err);
+        }
 
-var prepareConfig = function(config, env) {
+        data = data.replace('[app_path]', app.path);
+        data = YAML.parse(data);
+
+        callback(null, {
+            file: file,
+            data: prepareConfig(data, app.env)
+        });
+    });
+}
+
+/**
+ * @param config
+ * @param env
+ * @returns {Object}
+ */
+function prepareConfig(config, env) {
     config = prepareConfigEnv(config, env);
-    for (var key in config) {
+    for (let key in config) {
         if (config[key]['extend']) {
             config[key] = util.extend({}, config[config[key]['extend']], config[key]);
             delete config[key]['extend'];
         }
 
         if (config[key]['volumes'] && !Array.isArray(config[key]['volumes'])) {
-            var volumes = [];
-            for (var v in config[key]['volumes']) {
+            const volumes = [];
+            for (let v in config[key]['volumes']) {
                 volumes.push(v + ':' + config[key]['volumes'][v]);
             }
             config[key]['volumes'] = volumes;
         }
 
         if (config[key]['env'] && !Array.isArray(config[key]['env'])) {
-            var env = [];
-            for (var e in config[key]['env']) {
+            const env = [];
+            for (let e in config[key]['env']) {
                 env.push(e + '=' + config[key]['env'][e]);
             }
             config[key]['env'] = env;
@@ -105,65 +107,28 @@ var prepareConfig = function(config, env) {
     }
 
     return config;
-};
+}
 
-module.exports = function(whaler) {
-
-    addCmd(whaler);
-
-    whaler.events.on('config', function(options, callback) {
-        options['name'] = whaler.helpers.getName(options['name']);
-
-        whaler.apps.get(options['name'], function(err, app) {
-            if (err) {
-                return callback(err);
-            }
-
-            var update = {};
-
-            var loadConfig = function() {
-                var file = whaler.helpers.getPath(
-                    options['config'] || app.config['file'] || app.path + '/whaler.yml'
-                );
-                try {
-                    var data = fs.readFileSync(file, 'utf8');
-                    data = data.replace('[app_path]', app.path);
-                    data = YAML.parse(data);
-
-                } catch (e) {
-                    return callback(e);
+/**
+ * @param config
+ * @param env
+ * @returns {Object}
+ */
+function prepareConfigEnv(config, env) {
+    if ('object' === typeof config && Object.keys(config).length) {
+        const keys = Object.keys(config);
+        for (let key of keys) {
+            if ('~' == key[0]) {
+                if ('~' + env == key) {
+                    config = util.extend({}, config, config[key]);
                 }
-
-                return {
-                    file: file,
-                    data: prepareConfig(data, app.env)
-                };
-            };
-
-            if (options['setEnv']) {
-                app.env = update['env'] = options['setEnv'];
-            }
-
-            if (options['update']) {
-                update['config'] = loadConfig();
-            }
-
-            if (Object.keys(update).length > 0) {
-                whaler.apps.update(options['name'], update, function(err) {
-                    if (err) {
-                        return callback(err);
-                    }
-                    callback(null, update['config'] || app.config);
-                });
-
+                delete config[key];
+                config = prepareConfigEnv(config, env);
             } else {
-                var config = app.config;
-                if (options['config']) {
-                    config = loadConfig();
-                }
-
-                callback(null, config);
+                config[key] = prepareConfigEnv(config[key], env);
             }
-        });
-    });
-};
+        }
+    }
+
+    return config;
+}
