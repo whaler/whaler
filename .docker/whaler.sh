@@ -1,7 +1,17 @@
 #!/bin/sh
 
 TTY=$(tty)
-DOCKER_IP=$(/sbin/ifconfig docker0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+case "$OSTYPE" in
+    darwin*)
+        if [ -z "$DOCKER_HOST" ]; then
+            eval "$(docker-machine env default)"
+        fi
+        DOCKER_IP=$(echo $DOCKER_HOST | cut -d: -f2 | cut -d/ -f3)
+    ;;
+    *)
+        DOCKER_IP=$(/sbin/ifconfig docker0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+    ;;
+esac
 
 set -e
 
@@ -15,17 +25,20 @@ fi
 
 if [ "daemon" = "$1" ]; then
 
-    WHALER_PORT=$2
+    WHALER_PORT=1337
 
-    if [ "--port" = "$WHALER_PORT" ]; then
-        WHALER_PORT=$3
-    else
-        WHALER_PORT=${2#--port=}
-    fi
-
-    if [ -z "$WHALER_PORT" ]; then
-        WHALER_PORT=1337
-    fi
+    idx=1
+    for i in "$@"; do
+    case $i in
+        --port=*)
+            WHALER_PORT="${i#*=}"
+        ;;
+        --port)
+            WHALER_PORT=$(eval "echo \${`expr $idx + 1`}")
+        ;;
+    esac
+    idx=`expr $idx + 1`
+    done
 
     docker run -d --restart always \
     -v $HOME:$HOME \
@@ -39,7 +52,7 @@ if [ "daemon" = "$1" ]; then
     --volumes-from whaler \
     --name whaler_daemon \
     node:4.2 \
-    whaler daemon --port $WHALER_PORT
+    whaler "$@"
 
 else
 
