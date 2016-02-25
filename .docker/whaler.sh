@@ -25,11 +25,15 @@ fi
 
 if [ "daemon" = "$1" ]; then
 
+    WHALER_HELP=NO
     WHALER_PORT=1337
 
     idx=1
     for i in "$@"; do
     case $i in
+        -h|--help)
+            WHALER_HELP=YES
+        ;;
         --port=*)
             WHALER_PORT="${i#*=}"
         ;;
@@ -39,8 +43,13 @@ if [ "daemon" = "$1" ]; then
     esac
     idx=`expr $idx + 1`
     done
+    
+    DOCKER_OPTS="-d --restart always"
+    if [ "YES" = "$WHALER_HELP" ]; then
+        DOCKER_OPTS="-it --rm"
+    fi
 
-    docker run -d --restart always \
+    docker run $DOCKER_OPTS \
     -v $HOME:$HOME \
     -v $HOME/.whaler:/root/.whaler \
     -v $HOME/apps:/root/apps \

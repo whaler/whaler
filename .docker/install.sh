@@ -2,7 +2,6 @@
 
 KITEMATIC=NO
 VERSION=latest
-ID=$(docker inspect --format '{{ .Id }}' whaler) 2>/dev/null
 
 for i in "$@"; do
 case $i in
@@ -20,19 +19,59 @@ case $i in
 esac
 done
 
+case "$OSTYPE" in
+    darwin*)
+        if [ -z "$DOCKER_HOST" ]; then
+            eval "$(su $SUDO_USER -c 'docker-machine env default')"
+        fi
+    ;;
+esac
+
+install_sh() {
+    mkdir -p /usr/local/bin/
+    curl -sSL -o /usr/local/bin/whaler https://raw.githubusercontent.com/cravler/whaler/master/.docker/whaler.sh
+    if [ -f /usr/local/bin/whaler ]; then
+        chmod 4755 /usr/local/bin/whaler
+    fi
+    
+    if [ "NO" = "$KITEMATIC" ]; then
+        echo ''
+        if [ -f /usr/local/bin/whaler ]; then
+            if [ -z "$ID" ]; then
+                echo "Successfully installed."
+            else
+                echo "Successfully updated."
+            fi
+            echo "Use: $ whaler"
+        else
+            if [ -z "$ID" ]; then
+                echo "Failed to install."
+            else
+                echo "Failed to update."
+            fi
+        fi
+        echo ''
+    fi
+}
+
 docker_run() {
     docker run -t --rm \
     --volumes-from whaler \
     --name $1 \
     node:4.2 \
     npm install -g whaler@$VERSION
+    
+    install_sh
 }
+
+ID=$(docker inspect --format '{{ .Id }}' whaler) 2>/dev/null
 
 if [ -z "$ID" ]; then
 
     case "$OSTYPE" in
         darwin*)
-            docker-machine ssh default "curl -sSL https://raw.githubusercontent.com/cravler/whaler/master/.docker/install.sh | sudo sh -s -- --kitematic --version=$VERSION"
+            su $SUDO_USER -c 'docker-machine ssh default "curl -sSL https://raw.githubusercontent.com/cravler/whaler/master/.docker/install.sh | sudo sh -s -- --kitematic --version=$VERSION"'
+            install_sh
         ;;
         *)
             if [ "YES" = "$KITEMATIC" ]; then
@@ -63,32 +102,5 @@ else
 
     echo "Updating..."
     docker_run whaler_update
-
-fi
-
-mkdir -p /usr/local/bin/
-curl -sSL -o /usr/local/bin/whaler https://raw.githubusercontent.com/cravler/whaler/master/.docker/whaler.sh
-if [ -f /usr/local/bin/whaler ]; then
-    chmod 4755 /usr/local/bin/whaler
-fi
-
-if [ "NO" = "$KITEMATIC" ]; then
-
-    echo ''
-    if [ -f /usr/local/bin/whaler ]; then
-        if [ -z "$ID" ]; then
-            echo "Successfully installed."
-        else
-            echo "Successfully updated."
-        fi
-        echo "Use: $ whaler"
-    else
-        if [ -z "$ID" ]; then
-            echo "Failed to install."
-        else
-            echo "Failed to update."
-        fi
-    fi
-    echo ''
 
 fi
