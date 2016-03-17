@@ -27,9 +27,9 @@ case "$OSTYPE" in
     ;;
 esac
 
-install_sh() {
+setup_sh() {
     mkdir -p /usr/local/bin/
-    curl -sSL -o /usr/local/bin/whaler https://raw.githubusercontent.com/cravler/whaler/master/.docker/whaler.sh
+    curl -sSL -o /usr/local/bin/whaler https://raw.githubusercontent.com/whaler/whaler/master/.docker/whaler.sh
     if [ -f /usr/local/bin/whaler ]; then
         chmod 4755 /usr/local/bin/whaler
     fi
@@ -61,7 +61,7 @@ docker_run() {
     node:4.2 \
     npm install -g whaler@$VERSION
     
-    install_sh
+    setup_sh
 }
 
 ID=$(docker inspect --format '{{ .Id }}' whaler) 2>/dev/null
@@ -70,12 +70,12 @@ if [ -z "$ID" ]; then
 
     case "$OSTYPE" in
         darwin*)
-            su $SUDO_USER -c 'docker-machine ssh default "curl -sSL https://raw.githubusercontent.com/cravler/whaler/master/.docker/install.sh | sudo sh -s -- --kitematic --version=$VERSION"'
-            install_sh
+            su $SUDO_USER -c 'docker-machine ssh default "curl -sSL https://raw.githubusercontent.com/whaler/whaler/master/.docker/setup.sh | sudo sh -s -- --kitematic --version=$VERSION"'
+            setup_sh
         ;;
         *)
             if [ "YES" = "$KITEMATIC" ]; then
-                curl -sSL -o /mnt/sda1/var/lib/boot2docker/bootsync.sh https://raw.githubusercontent.com/cravler/whaler/master/.boot2docker/bootsync.sh
+                curl -sSL -o /mnt/sda1/var/lib/boot2docker/bootsync.sh https://raw.githubusercontent.com/whaler/whaler/master/.boot2docker/bootsync.sh
                 chmod 4755 /mnt/sda1/var/lib/boot2docker/bootsync.sh
                 /bin/sh /mnt/sda1/var/lib/boot2docker/bootsync.sh
 

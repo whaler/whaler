@@ -5,13 +5,13 @@
 ## Install
 
 ```sh
-$ curl -sSL https://git.io/whaler-install | sudo sh
+$ curl -sSL https://git.io/get-whaler | sudo sh
 ```
 
 OR
 
 ```sh
-$ curl -sSL https://git.io/whaler-install | sudo sh -s -- --version=latest
+$ curl -sSL https://git.io/get-whaler | sudo sh -s -- --version=latest
 ```
 
 ## Run app
