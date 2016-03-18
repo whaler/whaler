@@ -54,12 +54,17 @@ setup_sh() {
     fi
 }
 
+NPM_INSTALL="npm install -g whaler@$VERSION"
+if [ "dev" = "$VERSION" ]; then
+    NPM_INSTALL="npm install -g https://github.com/whaler/whaler.git"
+fi
+
 docker_run() {
     docker run -t --rm \
     --volumes-from whaler \
     --name $1 \
     node:4.2 \
-    npm install -g whaler@$VERSION
+    $NPM_INSTALL
     
     setup_sh
 }

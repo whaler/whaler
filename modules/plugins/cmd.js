@@ -26,18 +26,21 @@ function list(whaler) {
         .command(pkg.name)
         .description('Show installed plugins')
         .action(function* (options) {
+            const plugins = whaler.get('plugins');
             const response = yield whaler.$emit('plugins');
 
             const table = new Table({
                 head: [
-                    'Plugin name'
+                    'Plugin name',
+                    'Version'
                 ],
                 style : {
                     head: [ 'cyan' ]
                 }
             });
             for (let name of response) {
-                table.push([name]);
+                const pkg = plugins.require(name + '/package.json');
+                table.push([name, pkg['version']]);
             }
 
             console.log('');
@@ -60,6 +63,10 @@ function install(whaler) {
             const response = yield whaler.$emit('plugins:install', {
                 name: name
             });
+
+            if (false === response) {
+                throw new Error('Can\'t install plugin "' + name + '".');
+            }
 
             console.log('');
             console.info('[%s] Plugin %s installed.', process.pid, response['name']);
