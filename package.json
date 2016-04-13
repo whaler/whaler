@@ -6,7 +6,7 @@
     "email": "sergei.vizel@gmail.com",
     "url": "https://github.com/cravler"
   },
-  "homepage": "https://github.com/whaler/whaler",
+  "homepage": "https://github.com/whaler",
   "keywords": [
     "whale",
     "whaler",
@@ -15,7 +15,7 @@
     "fig"
   ],
   "license": "MIT",
-  "version": "0.2.3",
+  "version": "0.x-dev",
   "main": "index.js",
   "bin": {
     "whaler": "bin/whaler"

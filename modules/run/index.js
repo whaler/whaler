@@ -61,7 +61,7 @@ function exports(whaler) {
             'Env': info['Config']['Env'],
             'Image': info['Config']['Image'],
             'WorkingDir': info['Config']['WorkingDir'],
-            'Entrypoint': info['Config']['Entrypoint'],
+            'Entrypoint': false === options['entrypoint'] ? null : info['Config']['Entrypoint'],
             'StdinOnce': false,
             'AttachStdin': attachStdin,
             'AttachStdout': true,

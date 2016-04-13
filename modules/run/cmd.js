@@ -16,6 +16,7 @@ function cmd(whaler) {
             cmd: 'Command to execute'
         })
         .option('--no-tty', 'Disable tty binding')
+        .option('--no-entrypoint', 'Disable entrypoint')
         .action(function* (ref, cmd, options) {
             ref = this.util.prepare('ref', ref);
             cmd = cmd || process.env.WHALER_RUN_CMD || '/bin/sh';
@@ -23,7 +24,8 @@ function cmd(whaler) {
             const container = yield whaler.$emit('run', {
                 ref: ref,
                 cmd: cmd,
-                tty: options.tty
+                tty: options.tty,
+                entrypoint: options.entrypoint
             });
 
             whaler.before('SIGINT', function* () {
