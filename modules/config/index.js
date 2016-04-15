@@ -2,7 +2,7 @@
 
 var fs = require('fs');
 var path = require('path');
-var YAML = require('yamljs');
+var yaml = require('js-yaml');
 var util = require('dockerode/lib/util');
 
 module.exports = exports;
@@ -63,7 +63,7 @@ function loadConfig(app, options, callback) {
         }
 
         data = data.replace('[app_path]', app.path);
-        data = YAML.parse(data);
+        data = yaml.load(data);
 
         callback(null, {
             file: file,
@@ -115,7 +115,7 @@ function prepareConfig(config, env) {
  * @returns {Object}
  */
 function prepareConfigEnv(config, env) {
-    if ('object' === typeof config && Object.keys(config).length) {
+    if ('object' === typeof config && null !== config && Object.keys(config).length) {
         const keys = Object.keys(config);
         for (let key of keys) {
             if ('~' == key[0]) {

@@ -1,7 +1,7 @@
 'use strict';
 
 var pkg = require('./package.json');
-var YAML = require('yamljs');
+var yaml = require('js-yaml');
 var console = require('x-console');
 
 module.exports = cmd;
@@ -39,9 +39,7 @@ function cmd(whaler) {
                 console.info('[%s] Application "%s" env updated.', process.pid, name);
             } else {
                 console.info(config.file, '\n');
-                let data = YAML.stringify(config.data, 4);
-                data = data.replace(/dockerfile: "(.*)\\n"/g, 'dockerfile: |\n        $1');
-                data = data.replace(/(\\n)/g, '\n        ');
+                let data = yaml.dump(config.data, { indent: 2 });
                 console.log(data.trim());
             }
         });

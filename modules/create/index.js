@@ -1,6 +1,8 @@
 'use strict';
 
+var fs = require('fs');
 var path = require('path');
+var mkdirp = require('mkdirp');
 var console = require('x-console');
 
 module.exports = exports;
@@ -82,36 +84,79 @@ function exports(whaler) {
                 }
             };
 
-            if (config['image']) {
-                try {
-                    yield docker.followPull.$call(docker, config['image']);
-                } catch (e) {}
-                createOpts['Image'] = config['image'];
-
-            } else {
+            if (config['dockerfile']) {
                 let file = null;
-                if (config['build']) {
+
+                let context = config['build'] || null;
+                if ('string' === typeof context && !path.isAbsolute(context)) {
+                    context = path.join(path.dirname(appConfig['file']), path.normalize(context));
+                } else {
+                    context = null;
+                }
+                file = yield docker.createTarPack.$call(docker, {
+                    context: context,
+                    dockerfile: config['dockerfile']
+                });
+
+                const imageName = config['image'] || 'whaler_' + appName + '_' + name;
+                const output = yield docker.followBuildImage.$call(docker, file, imageName);
+                createOpts['Image'] = imageName;
+
+            } else if (config['build']) {
+                let file = null;
+                let dockerfile = null;
+                if ('string' === typeof config['build']) {
                     let build = config['build'];
                     if (build && !path.isAbsolute(build)) {
                         build = path.join(path.dirname(appConfig['file']), path.normalize(build));
                     }
-                    file = yield docker.createDockerfile.$call(docker, build);
+                    file = yield docker.createTarPack.$call(docker, build);
 
                 } else {
-                    let dfStorage = config['dockerfile-storage'] || null;
-                    if (dfStorage && !path.isAbsolute(dfStorage)) {
-                        dfStorage = path.join(path.dirname(appConfig['file']), path.normalize(dfStorage));
+                    let context = null;
+                    if (Array.isArray(config['build'])) {
+                        context = config['build'];
+
+                    } else {
+                        context = config['build']['context'] || null;
+                        if ('string' === typeof config['build']['dockerfile']) {
+                            dockerfile = config['build']['dockerfile'];
+                        }
                     }
-                    file = yield docker.createDockerfile.$call(docker, {
-                        dockerfile: config['dockerfile'],
-                        storage: dfStorage
+
+                    if (!context) {
+                        throw new Error('Context must be specified!');
+                    }
+
+                    if ('string' === typeof context) {
+                        if (!path.isAbsolute(context)) {
+                            context = path.join(path.dirname(appConfig['file']), path.normalize(context));
+                        }
+                    } else if (Array.isArray(context)) {
+                        for (let i = 0; i < context.length; i++) {
+                            if ('string' === typeof context[i] && !path.isAbsolute(context[i])) {
+                                context[i] = path.join(path.dirname(appConfig['file']), path.normalize(context[i]));
+                            }
+                        }
+                    }
+
+                    file = yield docker.createTarPack.$call(docker, {
+                        context: context
                     });
                 }
 
-                const imageName = 'whaler_' + appName + '_' + name;
-                const output = yield docker.followBuildImage.$call(docker, file, imageName);
-
+                const imageName = config['image'] || 'whaler_' + appName + '_' + name;
+                const output = yield docker.followBuildImage.$call(docker, file, {
+                    t: imageName,
+                    dockerfile: dockerfile
+                });
                 createOpts['Image'] = imageName;
+
+            } else {
+                try {
+                    yield docker.followPull.$call(docker, config['image']);
+                } catch (e) {}
+                createOpts['Image'] = config['image'];
             }
 
             let volumes = [];
@@ -136,6 +181,17 @@ function exports(whaler) {
 
             if (config['cmd']) {
                 if ('string' === typeof config['cmd']) {
+                    if (config['cmd'].indexOf('\n') !== -1) {
+                        var dir = '/var/lib/whaler/volumes/' + appName + '/' + name;
+                        const cmd = dir + '/cmd';
+
+                        yield mkdirp.$call(null, dir);
+                        yield fs.writeFile.$call(null, cmd, config['cmd'], { mode: '775' });
+
+                        createOpts['HostConfig']['Binds'].push(cmd +':/usr/bin/@cmd');
+                        config['cmd'] = '/usr/bin/@cmd';
+                    }
+
                     config['cmd'] = docker.util.parseCmd(config['cmd']);
                 }
                 createOpts['Cmd'] = config['cmd'];

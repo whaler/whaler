@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+
+'use strict';
+
+var fs = require('fs');
+var path = require('path');
+
+if ('dev' === (process.env['WHALER_SETUP'] || null)) {
+    var dev = {
+        version: '0.x-dev'
+    };
+
+    fs.writeFileSync(path.dirname(__dirname) + '/dev.json', JSON.stringify(dev, null, 2));
+}

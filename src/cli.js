@@ -73,7 +73,12 @@ cli.Command.prototype.action = function(fn) {
 };
 
 cli._name = pkg.name;
-cli.version(pkg.version);
+try {
+    const dev = require('../dev.json');
+    cli.version(dev.version);
+} catch(e) {
+    cli.version(pkg.version);
+}
 
 cli.option(
     '-H, --host <HOST>',

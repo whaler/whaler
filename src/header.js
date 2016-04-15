@@ -46,9 +46,15 @@ function prepareInfo() {
     const pkg = require('../package.json');
     let info = fs.readFileSync(__dirname + '/../info.txt', 'utf8');
 
+    let version = pkg.version;
+    try {
+        const dev = require('../dev.json');
+        version = dev.version;
+    } catch(e) {}
+
     info = info.replace('[url]', colors.yellow('URL: ') + pkg.homepage);
     info = info.replace('[author]', colors.yellow('Author: ') + pkg.author.name);
-    info = info.replace('[version]', colors.yellow('Version: ') + pkg.version);
+    info = info.replace('[version]', colors.yellow('Version: ') + version);
 
     const data = info.split('\n');
     data.every((line, index) => {

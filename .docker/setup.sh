@@ -56,7 +56,7 @@ setup_sh() {
 
 NPM_INSTALL="npm install -g whaler@$VERSION"
 if [ "dev" = "$VERSION" ]; then
-    NPM_INSTALL="npm install -g https://github.com/whaler/whaler.git"
+    NPM_INSTALL="WHALER_SETUP=dev npm install -g https://github.com/whaler/whaler.git"
 fi
 
 docker_run() {
