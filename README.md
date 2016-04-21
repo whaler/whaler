@@ -25,8 +25,8 @@ DOCKER_MACHINE_NAME=<NAME>
 Available options:
 
 ```
---version=<VERSION>        Specify an "Whaler" version (dev, latest, [...](https://github.com/whaler/whaler/releases/)).
---docker-machine=<NAME>    Setup "Whaler" inside [docker-machine](https://docs.docker.com/machine/install-machine/), env DOCKER_MACHINE_NAME will be ignored.
+--version=<VERSION>        Specify an "Whaler" version (dev, latest, ...)).
+--docker-machine=<NAME>    Setup "Whaler" inside docker-machine, env DOCKER_MACHINE_NAME will be ignored.
 ```
 
 ## Run app
