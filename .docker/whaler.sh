@@ -15,6 +15,7 @@ case "$OSTYPE" in
 esac
 
 if [ ! -z "$WHALER_MACHINE_NAME" ]; then
+    WHALER_PATH=""
     DOCKER_MACHINE_NAME=""
     eval "$(docker-machine env $WHALER_MACHINE_NAME)"
     if [ ! "$DOCKER_MACHINE_NAME" = "$WHALER_MACHINE_NAME" ]; then
