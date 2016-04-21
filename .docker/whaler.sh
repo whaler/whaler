@@ -1,23 +1,27 @@
 #!/bin/sh
 
 TTY=$(tty)
+WHALER_PATH=${WHALER_PATH:=}
+WHALER_FRONTEND=${WHALER_FRONTEND:=}
+WHALER_MACHINE_NAME=${DOCKER_MACHINE_NAME:=}
+
 case "$OSTYPE" in
     darwin*)
-        if [ -z "$DOCKER_HOST" ]; then
-            eval "$(docker-machine env default)"
-        fi
-        DOCKER_IP=$(echo $DOCKER_HOST | cut -d: -f2 | cut -d/ -f3)
+        # do nothing
     ;;
     *)
-        DOCKER_IP=$(/sbin/ifconfig docker0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+        WHALER_DOCKER_IP=$(/sbin/ifconfig docker0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
     ;;
 esac
 
-set -e
-
-: ${WHALER_PATH:=}; export WHALER_PATH
-: ${WHALER_FRONTEND:=}; export WHALER_FRONTEND
-: ${WHALER_DOCKER_IP:=$DOCKER_IP}; export WHALER_DOCKER_IP
+if [ ! -z "$WHALER_MACHINE_NAME" ]; then
+    DOCKER_MACHINE_NAME=""
+    eval "$(docker-machine env $WHALER_MACHINE_NAME)"
+    if [ ! "$DOCKER_MACHINE_NAME" = "$WHALER_MACHINE_NAME" ]; then
+        exit
+    fi
+    WHALER_DOCKER_IP=$(echo $DOCKER_HOST | cut -d: -f2 | cut -d/ -f3)
+fi
 
 if [ ! -z "$WHALER_PATH" ]; then
     WHALER_VOLUME="-v $WHALER_PATH:/usr/local/lib/node_modules/whaler"
@@ -43,7 +47,7 @@ if [ "daemon" = "$1" ]; then
     esac
     idx=`expr $idx + 1`
     done
-    
+
     DOCKER_OPTS="-d --restart always"
     if [ "YES" = "$WHALER_HELP" ]; then
         DOCKER_OPTS="-it --rm"
@@ -58,6 +62,7 @@ if [ "daemon" = "$1" ]; then
     -p $WHALER_PORT:$WHALER_PORT \
     --pid host \
     -e "WHALER_DOCKER_IP=$WHALER_DOCKER_IP" \
+    -e "WHALER_DAEMON_APPS=$HOME/apps" \
     --volumes-from whaler \
     --name whaler_daemon \
     node:4.2 \

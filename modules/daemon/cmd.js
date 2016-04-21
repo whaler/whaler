@@ -21,7 +21,7 @@ function cmd(whaler) {
             }
 
             const daemon = yield whaler.$emit('daemon', {
-                dir: process.env.HOME + '/apps'
+                dir: process.env.WHALER_DAEMON_APPS || process.env.HOME + '/apps'
             });
 
             whaler.before('SIGINT', function* () {

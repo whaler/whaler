@@ -51,7 +51,7 @@ function exports(whaler) {
                 status.push(color ? value[color] : value);
             }
 
-            response.push([appName, status.join('|'), app.path || '']);
+            response.push([appName, app.env, status.join('|'), app.path || '']);
         }
 
         return response;

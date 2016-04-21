@@ -33,7 +33,7 @@ function exports(whaler) {
 
         } else {
             let config = app.config;
-            if (options['config']) {
+            if (options['file']) {
                 config = yield loadConfig.$call(null, app, options);
             }
 
@@ -51,7 +51,21 @@ function exports(whaler) {
  * @returns {Object}
  */
 function loadConfig(app, options, callback) {
-    const file = options['config'] || app.config['file'] || app.path + '/whaler.yml';
+    const file = options['file'] || app.config['file'] || app.path + '/whaler.yml';
+
+    let cb = function(data) {
+        data = data.replace('[app_path]', app.path);
+        data = yaml.load(data);
+
+        callback(null, {
+            file: file,
+            data: prepareConfig(data, app.env)
+        });
+    };
+
+    if (options['yml']) {
+        return cb(options['yml']);
+    }
 
     if (!path.isAbsolute(file)) {
         return callback(new Error('Config path must be absolute.'));
@@ -61,14 +75,7 @@ function loadConfig(app, options, callback) {
         if (err) {
             return callback(err);
         }
-
-        data = data.replace('[app_path]', app.path);
-        data = yaml.load(data);
-
-        callback(null, {
-            file: file,
-            data: prepareConfig(data, app.env)
-        });
+        cb(data);
     });
 }
 

@@ -28,7 +28,7 @@ function exports(whaler) {
         if (options['config']) {
             appConfig = yield whaler.$emit('config', {
                 name: appName,
-                config: options['config']
+                file: options['config']
             });
         }
 
@@ -186,7 +186,7 @@ function exports(whaler) {
                         const cmd = dir + '/cmd';
 
                         yield mkdirp.$call(null, dir);
-                        yield fs.writeFile.$call(null, cmd, config['cmd'], { mode: '775' });
+                        yield fs.writeFile.$call(null, cmd, config['cmd'], { mode: '755' });
 
                         createOpts['HostConfig']['Binds'].push(cmd +':/usr/bin/@cmd');
                         config['cmd'] = '/usr/bin/@cmd';

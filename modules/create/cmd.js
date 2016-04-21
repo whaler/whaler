@@ -14,7 +14,7 @@ function cmd(whaler) {
         .description(pkg.description, {
             ref: 'Application or container name'
         })
-        .option('--config <CONFIG>', 'Config to use')
+        .option('--config <CONFIG>', 'Specify an config file')
         .action(function* (ref, options) {
             ref = this.util.prepare('ref', ref);
             if (options.config) {

@@ -43,8 +43,7 @@ Whaler.prototype.init = function() {
 
     // bridge
     mkdir('/var/lib/whaler/bin');
-    fs.writeFileSync('/var/lib/whaler/bin/bridge', fs.readFileSync(__dirname + '/bin/bridge'));
-    fs.chmodSync('/var/lib/whaler/bin/bridge', '4755');
+    fs.writeFileSync('/var/lib/whaler/bin/bridge', fs.readFileSync(__dirname + '/bin/bridge'), { mode: '755' });
 
     // SIGINT
     this.on('SIGINT', () => {

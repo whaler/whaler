@@ -17,7 +17,7 @@ Manager.prototype.info = function(name, callback) {
         const parts = name.replace('github.com', 'raw.githubusercontent.com').split('#');
         const url = parts[0].replace(/\/+$/, '').replace(/\.git+$/, '');
 
-        request(url + '/' + (parts.length > 1 ? parts[1] : 'master') + '/package.json', function (err, resp, body) {
+        request(url + '/' + (parts.length > 1 ? parts[1] : 'master') + '/package.json', (err, resp, body) => {
             if (err) {
                 return callback(err);
             }

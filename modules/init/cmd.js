@@ -32,6 +32,7 @@ function cmd(whaler) {
                 config: options.config
             });
 
+            console.log('');
             console.info('[%s] An application with "%s" name created.', process.pid, name);
         });
 

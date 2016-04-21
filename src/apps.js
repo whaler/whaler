@@ -18,7 +18,7 @@ function Apps() {
  * @param callback
  */
 Apps.prototype.all = function(callback) {
-    this._storage.all(function(err, data) {
+    this._storage.all((err, data) => {
         for (let name in data) {
             data[name] = prepareDataToGet(data[name]);
         }
@@ -31,7 +31,7 @@ Apps.prototype.all = function(callback) {
  * @param callback
  */
 Apps.prototype.get = function(name, callback) {
-    this._storage.get(name, function(err, data) {
+    this._storage.get(name, (err, data) => {
         callback(err, prepareDataToGet(data));
     });
 };
@@ -42,7 +42,7 @@ Apps.prototype.get = function(name, callback) {
  * @param callback
  */
 Apps.prototype.add = function(name, data, callback) {
-    this._storage.insert(name, prepareDataToSet(data), function(err, data) {
+    this._storage.insert(name, prepareDataToSet(data), (err, data) => {
         callback(err, prepareDataToGet(data));
     });
 };
@@ -53,7 +53,7 @@ Apps.prototype.add = function(name, data, callback) {
  * @param callback
  */
 Apps.prototype.update = function(name, data, callback) {
-    this._storage.update(name, prepareDataToSet(data), function(err) {
+    this._storage.update(name, prepareDataToSet(data), (err) => {
         prepareDataToGet(data);
         callback(err);
     });
@@ -74,8 +74,14 @@ Apps.prototype.remove = function(name, callback) {
  * @returns {*}
  */
 function prepareDataToSet(data) {
-    if (data && data['config'] && data['config']['data'] && 'string' !== typeof data['config']['data']) {
-        data['config']['data'] = yaml.dump(data['config']['data'], { indent: 2 });
+    if (data && data['config']) {
+        if (data['config']['data']) {
+            if ('string' !== typeof data['config']['data']) {
+                data['config']['data'] = yaml.dump(data['config']['data'], { indent: 2 });
+            }
+        } else {
+            data['config']['data'] = '';
+        }
     }
 
     return data;
@@ -86,8 +92,14 @@ function prepareDataToSet(data) {
  * @returns {*}
  */
 function prepareDataToGet(data) {
-    if (data && data['config'] && data['config']['data'] && 'string' === typeof data['config']['data']) {
-        data['config']['data'] = yaml.load(data['config']['data']);
+    if (data && data['config']) {
+        if (data['config']['data']) {
+            if ('string' === typeof data['config']['data']) {
+                data['config']['data'] = yaml.load(data['config']['data']);
+            }
+        } else {
+            data['config']['data'] = {};
+        }
     }
 
     return data;

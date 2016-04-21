@@ -20,6 +20,7 @@ function cmd(whaler) {
             const table = new Table({
                 head: [
                     'Application name',
+                    'Env',
                     'Status',
                     'Path'
                 ],
