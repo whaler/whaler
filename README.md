@@ -6,33 +6,22 @@ This app depends on [docker](https://www.docker.com/).
 
 ## Setup
 
+### Linux & Darwin/OSX
+
 ```sh
-$ curl -sSL https://git.io/get-whaler | sudo -E sh
+$ curl -sSL https://git.io/get-whaler | sh
 ```
 
 OR
 
 ```sh
-$ curl -sSL https://git.io/get-whaler | sudo [env] sh -s -- [options]
-```
-
-Available env vars:
-
-```
-DOCKER_MACHINE_NAME=<NAME>
+$ curl -sSL https://git.io/get-whaler | sh -s -- [options]
 ```
 
 Available options:
 
 ```
---version=<VERSION>        Specify an "Whaler" version (dev, latest, ...).
---docker-machine=<NAME>    Setup "Whaler" inside docker-machine, env DOCKER_MACHINE_NAME will be ignored.
-```
-
-## Run app
-
-```sh
-$ whaler
+--version=<VERSION>    Specify an "Whaler" version (dev, latest, ...).
 ```
 
 ## License
