@@ -33,13 +33,13 @@ function exports(whaler) {
         }
 
         if (serviceName) {
-            if (!appConfig['data'][serviceName]) {
+            if (!appConfig['data']['services'][serviceName]) {
                 throw new Error('Config for "' + options['ref'] + '" not found.');
             }
         }
 
         const containers = {};
-        let services = Object.keys(appConfig['data']);
+        let services = Object.keys(appConfig['data']['services']);
         if (serviceName) {
             services = [serviceName];
         }
@@ -47,7 +47,7 @@ function exports(whaler) {
         const vars = yield whaler.$emit('vars', {});
 
         for (let name of services) {
-            const config = appConfig['data'][name];
+            const config = appConfig['data']['services'][name];
 
             console.info('');
             console.info('[%s] Creating "%s.%s" container.', process.pid, name, appName);
@@ -200,18 +200,25 @@ function exports(whaler) {
             if (config['volumes']) {
                 for (let volume of config['volumes']) {
                     const arr = volume.split(':');
-                    if (!path.isAbsolute(arr[0])) {
-                        arr[0] = path.join(path.dirname(appConfig['file']), path.normalize(arr[0]));
-                    }
-
-                    if (volumes.length) {
-                        const index = volumes.indexOf(arr[1]);
-                        if (-1 !== index) {
-                            volumes.splice(index, 1);
+                    if (arr.length == 1) {
+                        const index = volumes.indexOf(arr[0]);
+                        if (-1 === index) {
+                            volumes.push(arr[0]);
                         }
-                    }
+                    } else {
+                        if (!path.isAbsolute(arr[0])) {
+                            arr[0] = path.join(path.dirname(appConfig['file']), path.normalize(arr[0]));
+                        }
 
-                    createOpts['HostConfig']['Binds'].push(arr.join(':'));
+                        if (volumes.length) {
+                            const index = volumes.indexOf(arr[1]);
+                            if (-1 !== index) {
+                                volumes.splice(index, 1);
+                            }
+                        }
+
+                        createOpts['HostConfig']['Binds'].push(arr.join(':'));
+                    }
                 }
             }
 

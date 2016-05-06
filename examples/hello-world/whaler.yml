@@ -1,14 +1,16 @@
-redis:
-    image: redis:3
+services:
 
-flask:
-    dockerfile: |
-        FROM python:2.7.8
-        RUN pip install Flask redis
-    workdir: /usr/src/app
-    volumes:
-        - .:/usr/src/app
-    ports:
-        - 5000:5000
-    entrypoint: python
-    cmd: app.py
+    redis:
+        image: redis:3
+
+    flask:
+        dockerfile: |
+            FROM python:2.7.8
+            RUN pip install Flask redis
+        workdir: /usr/src/app
+        volumes:
+            - .:/usr/src/app
+        ports:
+            - 5000:5000
+        entrypoint: python
+        cmd: app.py

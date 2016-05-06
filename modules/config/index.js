@@ -85,32 +85,46 @@ function loadConfig(app, options, callback) {
  * @returns {Object}
  */
 function prepareConfig(config, env) {
+    config = config || {};
     config = prepareConfigEnv(config, env);
-    for (let key in config) {
-        if (config[key]['extend']) {
-            config[key] = util.extend({}, config[config[key]['extend']], config[key]);
-            delete config[key]['extend'];
-        }
-
-        if (config[key]['volumes'] && !Array.isArray(config[key]['volumes'])) {
-            const volumes = [];
-            for (let v in config[key]['volumes']) {
-                volumes.push(v + ':' + config[key]['volumes'][v]);
+    if (config['services'] || null) {
+        const services = config['services'];
+        for (let key in services) {
+            if (services[key]['extend']) {
+                services[key] = util.extend({}, services[services[key]['extend']], services[key]);
+                delete services[key]['extend'];
             }
-            config[key]['volumes'] = volumes;
-        }
 
-        if (config[key]['env'] && !Array.isArray(config[key]['env'])) {
-            const env = [];
-            for (let e in config[key]['env']) {
-                env.push(e + '=' + config[key]['env'][e]);
+            if (services[key]['volumes'] && !Array.isArray(services[key]['volumes'])) {
+                const volumes = [];
+                for (let v in services[key]['volumes']) {
+                    if (services[key]['volumes'][v]) {
+                        volumes.push(v + ':' + services[key]['volumes'][v]);
+                    } else {
+                        volumes.push(v);
+                    }
+                }
+                services[key]['volumes'] = volumes;
             }
-            config[key]['env'] = env;
-        }
 
-        if (config[key]['wait'] && 'string' !== typeof config[key]['wait']) {
-            config[key]['wait'] = config[key]['wait'] + 's';
+            if (services[key]['env'] && !Array.isArray(services[key]['env'])) {
+                const env = [];
+                for (let e in services[key]['env']) {
+                    if (services[key]['env'][e]) {
+                        env.push(e + '=' + services[key]['env'][e]);
+                    } else {
+                        env.push(e);
+                    }
+                }
+                services[key]['env'] = env;
+            }
+
+            if (services[key]['wait'] && 'string' !== typeof services[key]['wait']) {
+                services[key]['wait'] = services[key]['wait'] + 's';
+            }
         }
+    } else {
+        config['services'] = {};
     }
 
     return config;

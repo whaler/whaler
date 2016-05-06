@@ -75,6 +75,7 @@ Apps.prototype.remove = function(name, callback) {
  */
 function prepareDataToSet(data) {
     if (data && data['config']) {
+        data['config']['version'] = '2';
         if (data['config']['data']) {
             if ('string' !== typeof data['config']['data']) {
                 data['config']['data'] = yaml.dump(data['config']['data'], { indent: 2 });
@@ -97,8 +98,16 @@ function prepareDataToGet(data) {
             if ('string' === typeof data['config']['data']) {
                 data['config']['data'] = yaml.load(data['config']['data']);
             }
+            if ('2' !== (data['config']['version'] || '1')) {
+                const services = data['config']['data'];
+                data['config']['data'] = {
+                    services: services
+                };
+            }
         } else {
-            data['config']['data'] = {};
+            data['config']['data'] = {
+                services: {}
+            };
         }
     }
 

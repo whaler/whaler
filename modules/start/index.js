@@ -45,7 +45,7 @@ function exports(whaler) {
             services = [serviceName];
 
         } else {
-            services = Object.keys(app.config['data']);
+            services = Object.keys(app.config['data']['services']);
 
             const containers = yield docker.listContainers.$call(docker, {
                 all: true,

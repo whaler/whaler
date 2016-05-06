@@ -16,7 +16,7 @@ function exports(whaler) {
         const response = [];
         for (let appName in apps) {
             const app = apps[appName];
-            const names = Object.keys(app.config['data']);
+            const names = Object.keys(app.config['data']['services']);
 
             const containers = yield docker.listContainers.$call(docker, {
                 all: true,
@@ -39,7 +39,7 @@ function exports(whaler) {
                 const container = docker.getContainer(name + '.' + appName);
 
                 let value = '~';
-                const color = app.config['data'][name] ? null : 'red';
+                const color = app.config['data']['services'][name] ? null : 'red';
                 try {
                     const info = yield container.inspect.$call(container);
                     if (info['State']['Running']) {

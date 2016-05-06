@@ -14,7 +14,7 @@ function exports(whaler) {
         const app = yield storage.get.$call(storage, options['name']);
 
         const response = [];
-        const services = Object.keys(app.config['data']);
+        const services = Object.keys(app.config['data']['services']);
 
         const containers = yield docker.listContainers.$call(docker, {
             all: true,
@@ -37,7 +37,7 @@ function exports(whaler) {
 
             let ip = '-';
             let status = 'NOT CREATED';
-            const color = app.config['data'][name] ? null : 'red';
+            const color = app.config['data']['services'][name] ? null : 'red';
 
             try {
                 const info = yield container.inspect.$call(container);
