@@ -155,7 +155,15 @@ function writeLogs(stream, wait, callback) {
 
     stream.setEncoding('utf8');
 
+    let firstStr = true;
     stream.on('data', (data) => {
+        if (firstStr) {
+            firstStr = false;
+            if (!('\r\n' === data || '\n' === data)) {
+                console.log('');
+            }
+        }
+
         if (-1 !== data.indexOf('@whaler ready in') || -1 !== data.indexOf('@whaler wait')) {
             const sleepTime = str2time(data);
             console.info('');
