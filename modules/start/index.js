@@ -64,8 +64,8 @@ function exports(whaler) {
             }
         }
 
-        const extraHosts = [];
         const containers = {};
+        const extraHosts = yield getExtraHosts.$call(null, docker, appName);
 
         for (let name of services) {
             let container = docker.getContainer(name + '.' + appName);
@@ -233,4 +233,33 @@ function* injectIps(docker, appName) {
             }
         });
     }
+}
+
+function* getExtraHosts(docker, appName) {
+    let containers;
+    try {
+        containers = yield docker.listContainers.$call(docker, {
+            all: false,
+            filters: JSON.stringify({
+                name: [
+                    docker.util.nameFilter(appName)
+                ]
+            })
+        });
+    } catch (e) {}
+
+    const extraHosts = [];
+
+    if (containers) {
+        for (let data of containers) {
+            const parts = data['Names'][0].substr(1).split('.');
+            try {
+                const container = docker.getContainer(data['Id']);
+                const info = yield container.inspect.$call(container);
+                extraHosts.push(parts[0] + ':' + info['NetworkSettings']['IPAddress']);
+            } catch (e) {}
+        }
+    }
+
+    return extraHosts;
 }
