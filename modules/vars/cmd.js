@@ -2,7 +2,6 @@
 
 var pkg = require('./package.json');
 var console = require('x-console');
-var Table = require('cli-table');
 
 module.exports = cmd;
 
@@ -28,25 +27,20 @@ function list(whaler) {
         .action(function* (options) {
             const vars = yield whaler.$emit('vars');
 
-            const table = new Table({
-                head: [
-                    'Name',
-                    'Value'
-                ],
-                style : {
-                    head: [ 'cyan' ]
-                }
+            const table = whaler.get('cli-table')({
+                head: [ 'Name', 'Value' ]
             });
+
             for (let key in vars) {
                 let value = vars[key];
                 if (!value) {
                     value = '';
                 }
-                table.push([key, value]);
+                table.push([ key, value ]);
             }
 
             console.log('');
-            console.log(table.toString());
+            console.log(table.render());
         });
 
 }

@@ -2,7 +2,6 @@
 
 var pkg = require('./package.json');
 var console = require('x-console');
-var Table = require('cli-table');
 
 module.exports = cmd;
 
@@ -29,22 +28,17 @@ function list(whaler) {
             const plugins = whaler.get('plugins');
             const response = yield whaler.$emit('plugins');
 
-            const table = new Table({
-                head: [
-                    'Plugin name',
-                    'Version'
-                ],
-                style : {
-                    head: [ 'cyan' ]
-                }
+            const table = whaler.get('cli-table')({
+                head: [ 'Plugin name', 'Version' ]
             });
+
             for (let name of response) {
                 const pkg = plugins.require(name + '/package.json');
-                table.push([name, pkg['version']]);
+                table.push([ name, pkg['version'] ]);
             }
 
             console.log('');
-            console.log(table.toString());
+            console.log(table.render());
         });
 
 }
