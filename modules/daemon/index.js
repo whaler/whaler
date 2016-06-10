@@ -3,6 +3,7 @@
 var fs = require('fs');
 var tls = require('tls');
 var pty = require('pty.js');
+var Transform = require('stream').Transform;
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
@@ -38,13 +39,28 @@ function exports(whaler) {
 
                     process.env.WHALER_DAEMON_DIR  = dir;
                     process.env.WHALER_DAEMON_NAME = data['name'];
+                    
+                    const opt = data['xterm'] || {};
+                    opt['cwd'] = dir;
+                    opt['env'] = process.env;
 
-                    var xterm = pty.spawn(cmd, data['argv'], {
-                        cwd: dir,
-                        env: process.env
+                    const xterm = pty.spawn(cmd, data['argv'], opt);
+
+                    const resize = new Transform({
+                        decodeStrings: false
                     });
+                    resize._transform = (chunk, encoding, done) => {
+                        if (-1 !== chunk.indexOf('xterm-resize:')) {
+                            const size = JSON.parse(chunk.toString().split('xterm-resize:')[1]);
+                            xterm.resize(size.cols - 1, size.rows - 1);
+                            xterm.redraw();
+                            done(null);
+                        } else {
+                            done(null, chunk);
+                        }
+                    };
 
-                    socket.pipe(xterm);
+                    socket.pipe(resize).pipe(xterm);
                     xterm.pipe(socket);
                     xterm.on('exit', (code) => {
                         socket.end();

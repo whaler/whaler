@@ -63,8 +63,18 @@ function client(host, argv) {
         client.pipe(process.stdout);
         client.write(JSON.stringify({
             name: path.basename(process.cwd()),
-            argv: argv
+            argv: argv,
+            xterm: {
+                cols: process.stderr.columns,
+                rows: process.stdout.rows
+            }
         }));
+        process.stdout.on('resize', function() {
+            client.write('xterm-resize:' + JSON.stringify({
+                cols: process.stderr.columns,
+                rows: process.stdout.rows
+            }));
+        });
     });
 
     return client;
