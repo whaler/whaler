@@ -53,7 +53,10 @@ function exports(whaler) {
                         if (-1 !== chunk.indexOf('xterm-resize:')) {
                             const size = JSON.parse(chunk.toString().split('xterm-resize:')[1]);
                             xterm.resize(size.cols - 1, size.rows - 1);
-                            xterm.redraw();
+                            setTimeout(function() {
+                                self.resize(size.cols, size.rows);
+                            }, 30);
+
                             done(null);
                         } else {
                             done(null, chunk);
