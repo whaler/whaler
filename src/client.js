@@ -58,6 +58,7 @@ function client(host, argv) {
     });
 
     client.on('connect', () => {
+        let timerId = null;
         process.stdin.setRawMode(true);
         process.stdin.pipe(client);
         client.pipe(process.stdout);
@@ -70,10 +71,15 @@ function client(host, argv) {
             }
         }));
         process.stdout.on('resize', function() {
-            client.write('xterm-resize:' + JSON.stringify({
-                cols: process.stderr.columns,
-                rows: process.stdout.rows
-            }));
+            if (timerId) {
+                clearTimeout(timerId);
+            }
+            timerId = setTimeout(function() {
+                client.write('xterm-resize:' + JSON.stringify({
+                    cols: process.stderr.columns,
+                    rows: process.stdout.rows
+                }));
+            }, 30);
         });
     });
 

@@ -44,6 +44,7 @@ function exports(whaler) {
                     opt['cwd'] = dir;
                     opt['env'] = process.env;
 
+                    let timerId = null;
                     const xterm = pty.spawn(cmd, data['argv'], opt);
 
                     const resize = new Transform({
@@ -52,9 +53,12 @@ function exports(whaler) {
                     resize._transform = (chunk, encoding, done) => {
                         if (-1 !== chunk.indexOf('xterm-resize:')) {
                             const size = JSON.parse(chunk.toString().split('xterm-resize:')[1]);
-                            xterm.resize(size.cols - 1, size.rows - 1);
-                            setTimeout(function() {
-                                self.resize(size.cols, size.rows);
+                            if (timerId) {
+                                clearTimeout(timerId);
+                            }
+                            timerId = setTimeout(function() {
+                                xterm.resize(size.cols - 1, size.rows - 1);
+                                xterm.redraw();
                             }, 30);
 
                             done(null);
