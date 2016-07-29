@@ -68,12 +68,17 @@ function exports(whaler) {
                 }
             }
 
+            config['labels'] = config['labels'] || {};
+            for (let l in config['labels']) {
+                config['labels'][l] = JSON.stringify(config['labels'][l]);
+            }
+
             const createOpts = {
                 'name': name + '.' + appName,
                 'Image': null,
                 'Tty': true,
                 'Env': config['env'],
-                'Labels': {},
+                'Labels': config['labels'],
                 'ExposedPorts': {},
                 'HostConfig': {
                     'Binds': [
@@ -147,6 +152,7 @@ function exports(whaler) {
 
                 const imageName = config['image'] || 'whaler_' + appName + '_' + name;
                 const output = yield docker.followBuildImage.$call(docker, file, {
+                    //nocache: 1,
                     t: imageName,
                     dockerfile: dockerfile
                 });
