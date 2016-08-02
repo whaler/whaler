@@ -93,7 +93,7 @@ function exports(whaler) {
                     stderr: true
                 });
 
-                revertPipe = pipe(stream, attachStdin);
+                revertPipe = pipe(whaler, stream, attachStdin);
 
                 yield container.start.$call(container, startOpts);
 
@@ -133,30 +133,29 @@ function exports(whaler) {
 // PRIVATE
 
 /**
+ * @param whaler
  * @param stream
  * @param attachStdin
  * @returns {Function}
  */
-function pipe(stream, attachStdin) {
+function pipe(whaler, stream, attachStdin) {
 
     stream.setEncoding('utf8');
     stream.pipe(process.stdout, { end: false });
 
-    //const CTRL_C = '\u0003';
-    //const CTRL_D = '\u0004';
+    const CTRL_ALT_C = '\u001B\u0003';
     const isRaw = process.isRaw;
-    //const keyPress = function(key) {
-    //    if (key === CTRL_C || key === CTRL_D) {
-    //        process.stdout.write('exit');
-    //        stream.end();
-    //    }
-    //};
+    const keyPress = function(key) {
+        if (key === CTRL_ALT_C) {
+            whaler.emit('SIGINT');
+        }
+    };
 
     if (attachStdin) {
         process.stdin.resume();
         process.stdin.setRawMode(true);
         process.stdin.pipe(stream);
-        //process.stdin.on('data', keyPress);
+        process.stdin.on('data', keyPress);
     }
 
     return function revert() {
@@ -167,7 +166,7 @@ function pipe(stream, attachStdin) {
         stream.unpipe(process.stdout);
 
         if (attachStdin) {
-            //process.stdin.removeListener('data', keyPress);
+            process.stdin.removeListener('data', keyPress);
             process.stdin.unpipe(stream);
             process.stdin.setRawMode(isRaw);
             process.stdin.resume();
