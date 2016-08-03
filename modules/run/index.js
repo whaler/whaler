@@ -72,7 +72,8 @@ function exports(whaler) {
 
         const startOpts = {
             'ExtraHosts': extraHosts,
-            'Binds': info['HostConfig']['Binds']
+            'Binds': info['HostConfig']['Binds'],
+            'VolumesFrom': info['HostConfig']['VolumesFrom']
         };
 
         const container = yield docker.createContainer.$call(docker, createOpts);

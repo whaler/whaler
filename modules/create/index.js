@@ -85,7 +85,8 @@ function exports(whaler) {
                         '/var/lib/whaler/bin/bridge:/usr/bin/@me',
                         '/var/lib/whaler/bin/bridge:/usr/bin/@whaler'
                     ],
-                    'PortBindings': {}
+                    'PortBindings': {},
+                    'VolumesFrom': null
                 }
             };
 
@@ -165,14 +166,6 @@ function exports(whaler) {
                 createOpts['Image'] = config['image'];
             }
 
-            let volumes = [];
-            const image = docker.getImage(createOpts['Image']);
-            const info = yield image.inspect.$call(image);
-
-            if (info['ContainerConfig']['Volumes']) {
-                volumes = Object.keys(info['ContainerConfig']['Volumes']);
-            }
-
             if (config['wait']) {
                 createOpts['Labels']['whaler.wait'] = config['wait'].toString();
             }
@@ -201,6 +194,52 @@ function exports(whaler) {
                     config['cmd'] = docker.util.parseCmd(config['cmd']);
                 }
                 createOpts['Cmd'] = config['cmd'];
+            }
+
+            let volumes = [];
+            const image = docker.getImage(createOpts['Image']);
+            const info = yield image.inspect.$call(image);
+
+            if (info['ContainerConfig']['Volumes']) {
+                volumes = Object.keys(info['ContainerConfig']['Volumes']);
+            }
+
+            if (config['volumes_from']) {
+                let volumesFrom = [];
+                for (let name of config['volumes_from']) {
+                    let accessLevel = 'rw';
+                    let containerName = null;
+
+                    const arr = (name + ':' + accessLevel).split(':');
+
+                    if ('container' === arr[0]) {
+                        if (arr[2] !== 'ro') {
+                            accessLevel = 'rw';
+                        }
+                        containerName = arr[1];
+
+                    } else {
+                        if (arr[1] !== 'ro') {
+                            accessLevel = 'rw';
+                        }
+                        containerName = arr[0] + '.' + appName;
+                    }
+
+                    volumesFrom.push(containerName + ':' + accessLevel);
+
+                    if (volumes.length) {
+                        const container = docker.getContainer(containerName);
+                        const info = yield container.inspect.$call(container);
+
+                        if (info['Config']['Volumes']) {
+                            const removeVolumes = Object.keys(info['Config']['Volumes']);
+                            volumes = volumes.filter((el) => {
+                                return removeVolumes.indexOf(el) < 0;
+                            });
+                        }
+                    }
+                }
+                createOpts['HostConfig']['VolumesFrom'] = volumesFrom;
             }
 
             if (config['volumes']) {
