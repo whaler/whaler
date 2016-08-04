@@ -19,25 +19,38 @@ cli.Command.prototype.util = {
      */
     prepare: function(type, value) {
         if ('name' == type) {
-            return value || path.basename(process.cwd());
-        }
-        else if ('ref' == type) {
+            let name = path.basename(process.cwd());
+            if (process.env.WHALER_DAEMON_NAME) {
+                name = process.env.WHALER_DAEMON_NAME;
+            }
+
+            return value || name;
+
+        } else if ('ref' == type) {
+            let ref = path.basename(process.cwd());
+            if (process.env.WHALER_DAEMON_NAME) {
+                ref = process.env.WHALER_DAEMON_NAME;
+            }
+
             if (value) {
                 const parts = value.split('.');
                 if (2 == parts.length) {
                     if (!parts[1]) {
-                        value += path.basename(process.cwd());
+                        value += ref;
                     }
                 }
+
                 return value;
             }
-            return path.basename(process.cwd());
-        }
-        else if ('path' == type) {
+
+            return ref;
+
+        } else if ('path' == type) {
             value = value || process.cwd();
             if (!path.isAbsolute(value)) {
                 value = path.join(process.cwd(), path.normalize(value));
             }
+
             return value;
         }
 
