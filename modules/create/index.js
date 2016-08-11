@@ -72,10 +72,12 @@ function exports(whaler) {
             for (let l in config['labels']) {
                 config['labels'][l] = JSON.stringify(config['labels'][l]);
             }
+            config['labels']['whaler.app'] = appName;
+            config['labels']['whaler.service'] = name;
 
             const createOpts = {
                 'name': name + '.' + appName,
-                'Image': null,
+                'Image': config['image'] || 'whaler_' + appName + '_' + name,
                 'Tty': true,
                 'Env': config['env'],
                 'Labels': config['labels'],
@@ -89,6 +91,13 @@ function exports(whaler) {
                     'VolumesFrom': null
                 }
             };
+
+            let imageId = null;
+            try {
+                const image = docker.getImage(createOpts['Image']);
+                const info = yield image.inspect.$call(image);
+                imageId = info['Id'];
+            } catch (e) {}
 
             if (config['dockerfile']) {
                 let file = null;
@@ -104,9 +113,10 @@ function exports(whaler) {
                     dockerfile: config['dockerfile']
                 });
 
-                const imageName = config['image'] || 'whaler_' + appName + '_' + name;
-                const output = yield docker.followBuildImage.$call(docker, file, imageName);
-                createOpts['Image'] = imageName;
+                const output = yield docker.followBuildImage.$call(docker, file, {
+                    pull: true,
+                    t: createOpts['Image']
+                });
 
             } else if (config['build']) {
                 let file = null;
@@ -151,19 +161,16 @@ function exports(whaler) {
                     });
                 }
 
-                const imageName = config['image'] || 'whaler_' + appName + '_' + name;
                 const output = yield docker.followBuildImage.$call(docker, file, {
-                    //nocache: 1,
-                    t: imageName,
+                    pull: true,
+                    t: createOpts['Image'],
                     dockerfile: dockerfile
                 });
-                createOpts['Image'] = imageName;
 
             } else {
                 try {
-                    yield docker.followPull.$call(docker, config['image']);
+                    yield docker.followPull.$call(docker, createOpts['Image']);
                 } catch (e) {}
-                createOpts['Image'] = config['image'];
             }
 
             if (config['wait']) {
@@ -199,6 +206,13 @@ function exports(whaler) {
             let volumes = [];
             const image = docker.getImage(createOpts['Image']);
             const info = yield image.inspect.$call(image);
+
+            if (imageId && imageId != info['Id']) {
+                try {
+                    const image = docker.getImage(imageId);
+                    yield image.remove.$call(image);
+                } catch (e) {}
+            }
 
             if (info['ContainerConfig']['Volumes']) {
                 volumes = Object.keys(info['ContainerConfig']['Volumes']);

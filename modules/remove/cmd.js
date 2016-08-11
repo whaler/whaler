@@ -14,7 +14,7 @@ function cmd(whaler) {
         .description(pkg.description, {
             ref: 'Application or container name'
         })
-        .option('--purge', 'Remove application')
+        .option('--purge', 'Completely remove a [ref] and the associated configuration files')
         .action(function* (ref, options) {
             ref = this.util.prepare('ref', ref);
 

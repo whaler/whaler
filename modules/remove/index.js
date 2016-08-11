@@ -58,18 +58,42 @@ function exports(whaler) {
 
             console.info('');
             console.info('[%s] Container "%s.%s" removed.', process.pid, name, appName);
+
+            if (options['purge']) {
+                const config = app.config['data']['services'][name];
+                const imageName = config['image'] || 'whaler_' + appName + '_' + name;
+
+                try {
+                    const image = docker.getImage(imageName);
+                    yield image.remove.$call(image);
+
+                    console.warn('');
+                    console.warn('[%s] Image "%s" removed.', process.pid, imageName);
+                } catch (e) {}
+            }
         }
 
-        if (!serviceName && options['purge']) {
-            try {
-                yield fs.stat.$call(null, '/var/lib/whaler/volumes/' + appName);
-                yield deleteFolderRecursive.$call(null, '/var/lib/whaler/volumes/' + appName);
-            } catch (e) {}
+        if (options['purge']) {
+            if (serviceName) {
+                try {
+                    yield fs.stat.$call(null, '/var/lib/whaler/volumes/' + appName + '/' + serviceName);
+                    yield deleteFolderRecursive.$call(null, '/var/lib/whaler/volumes/' + appName + '/' + serviceName);
+                } catch (e) {}
 
-            yield storage.remove.$call(storage, appName);
+                console.warn('');
+                console.warn('[%s] Service "%s" removed.', process.pid, serviceName);
 
-            console.warn('');
-            console.warn('[%s] Application "%s" removed.', process.pid, appName);
+            } else {
+                try {
+                    yield fs.stat.$call(null, '/var/lib/whaler/volumes/' + appName);
+                    yield deleteFolderRecursive.$call(null, '/var/lib/whaler/volumes/' + appName);
+                } catch (e) {}
+
+                yield storage.remove.$call(storage, appName);
+
+                console.warn('');
+                console.warn('[%s] Application "%s" removed.', process.pid, appName);
+            }
         }
     });
 }
