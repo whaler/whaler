@@ -88,7 +88,7 @@ cli.Command.prototype.action = function(fn) {
 cli._name = pkg.name;
 try {
     const dev = require('../dev.json');
-    cli.version(dev.version);
+    cli.version(dev.version + (dev.sha ? ' ' + dev.sha.substr(0, 7) : ''));
 } catch(e) {
     cli.version(pkg.version);
 }

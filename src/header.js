@@ -49,7 +49,7 @@ function prepareInfo() {
     let version = pkg.version;
     try {
         const dev = require('../dev.json');
-        version = dev.version;
+        version = dev.version + (dev.sha ? ' ' + colors.gray(dev.sha.substr(0, 7)) : '');
     } catch(e) {}
 
     info = info.replace('[url]', colors.yellow('URL: ') + pkg.homepage);
