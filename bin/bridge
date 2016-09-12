@@ -1,3 +1,7 @@
 #!/bin/sh
 
-echo @whaler $@
+if [ ! -z "$1" ] && [ -e "/.whaler/bridge/$1" ]; then
+    exec /.whaler/bridge/$@
+else
+    echo @whaler $@
+fi

@@ -53,6 +53,8 @@ function exports(whaler) {
             console.info('[%s] Creating "%s.%s" container.', process.pid, name, appName);
 
             config['env'] = config['env'] || [];
+            config['env'].push('WHALER_APP=' + appName);
+            config['env'].push('WHALER_SERVICE=' + name);
             for (let v in vars) {
                 let exists = false;
                 if (config['env'].length) {
