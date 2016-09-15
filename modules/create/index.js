@@ -247,12 +247,15 @@ function exports(whaler) {
                         const container = docker.getContainer(containerName);
                         const info = yield container.inspect.$call(container);
 
-                        if (info['Config']['Volumes']) {
-                            const removeVolumes = Object.keys(info['Config']['Volumes']);
-                            volumes = volumes.filter((el) => {
-                                return removeVolumes.indexOf(el) < 0;
-                            });
+                        const removeVolumes = [];
+                        if (info['Mounts'] && info['Mounts'].length) {
+                            for (let mount of info['Mounts']) {
+                                removeVolumes.push(mount['Destination']);
+                            }
                         }
+                        volumes = volumes.filter((el) => {
+                            return removeVolumes.indexOf(el) < 0;
+                        });
                     }
                 }
                 createOpts['HostConfig']['VolumesFrom'] = volumesFrom;
