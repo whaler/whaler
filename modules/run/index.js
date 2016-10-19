@@ -23,8 +23,8 @@ function exports(whaler) {
         }
 
         const docker = whaler.get('docker');
-        const storage = whaler.get('apps');
-        const app = yield storage.get.$call(storage, appName);
+        // const storage = whaler.get('apps');
+        // const app = yield storage.get.$call(storage, appName);
 
         const containers = yield docker.listContainers.$call(docker, {
             all: false,
@@ -55,10 +55,18 @@ function exports(whaler) {
             options['cmd'] = docker.util.parseCmd(options['cmd']);
         }
 
+        let nameSuffix;
+        if (options['detach'] || false) {
+            nameSuffix = '_detached_' + process.pid;
+        } else {
+            nameSuffix = '_pty_' + process.pid;
+        }
+
         const createOpts = {
-            'name': serviceName + '.' + appName + '_pty_' + process.pid,
+            'name': serviceName + '.' + appName + nameSuffix,
             'Cmd': options['cmd'],
             'Env': info['Config']['Env'],
+            'Labels': {},
             'Image': info['Config']['Image'],
             'WorkingDir': info['Config']['WorkingDir'],
             'Entrypoint': false === options['entrypoint'] ? null : info['Config']['Entrypoint'],
@@ -69,6 +77,7 @@ function exports(whaler) {
             'OpenStdin': attachStdin,
             'Tty': options['tty']
         };
+        createOpts['Labels']['whaler.on-die'] = 'remove';
 
         const startOpts = {
             'ExtraHosts': extraHosts,
@@ -83,33 +92,45 @@ function exports(whaler) {
             let err = null;
             let data = null;
 
-            let revertPipe = function() {};
-            let revertResize = function() {};
+            if (options['detach'] || false) {
+                try {
+                    yield container.start.$call(container, startOpts);
+                    data = yield container.inspect.$call(container);
 
-            try {
-                const stream = yield container.attach.$call(container, {
-                    stream: true,
-                    stdin: attachStdin,
-                    stdout: true,
-                    stderr: true
-                });
+                } catch (e) {
+                    err = e;
+                }
+                
+            } else {
 
-                revertPipe = pipe(whaler, stream, attachStdin, options['tty']);
+                let revertPipe = function () {};
+                let revertResize = function () {};
 
-                yield container.start.$call(container, startOpts);
+                try {
+                    const stream = yield container.attach.$call(container, {
+                        stream: true,
+                        stdin: attachStdin,
+                        stdout: true,
+                        stderr: true
+                    });
 
-                if (attachStdin) {
-                    revertResize = resize(container);
+                    revertPipe = pipe(whaler, stream, attachStdin, options['tty']);
+
+                    yield container.start.$call(container, startOpts);
+
+                    if (attachStdin) {
+                        revertResize = resize(container);
+                    }
+
+                    data = yield container.wait.$call(container);
+
+                } catch (e) {
+                    err = e;
                 }
 
-                data = yield container.wait.$call(container);
-
-            } catch (e) {
-                err = e;
+                revertPipe();
+                revertResize();
             }
-
-            revertPipe();
-            revertResize();
 
             if (err) {
                 throw err;

@@ -15,6 +15,7 @@ function cmd(whaler) {
             ref: 'Container name',
             cmd: 'Command to execute'
         })
+        .option('-d, --detach', 'Run container in background and print container ID')
         .option('--no-tty', 'Disable a pseudo-tty allocation')
         .option('--no-stdin', 'Disable STDIN attaching')
         .option('--no-entrypoint', 'Disable entrypoint')
@@ -24,7 +25,7 @@ function cmd(whaler) {
 
             let tty = options.tty;
             let stdin = options.stdin;
-            if ('noninteractive' === process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
+            if (options.detach || 'noninteractive' === process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
                 tty = false;
                 stdin = false;
             }
@@ -34,6 +35,7 @@ function cmd(whaler) {
                 cmd: cmd,
                 tty: tty,
                 stdin: stdin,
+                detach: options.detach || false,
                 entrypoint: options.entrypoint
             });
 
@@ -43,7 +45,10 @@ function cmd(whaler) {
 
             const data = yield container.run.$call(null);
 
-            if (137 !== data['StatusCode']) {
+            if (options.detach) {
+                console.log(data['Id']);
+
+            } else if (137 !== data['StatusCode']) {
                 yield container.exit.$call(null);
             }
         })
