@@ -14,6 +14,10 @@ function Whaler() {
 
 util.inherits(Whaler, EventEmitter);
 
+Whaler.prototype.$async = function(gen, callback) {
+    gen.$async(callback)();
+};
+
 /**
  * @param id
  */

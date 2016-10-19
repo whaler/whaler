@@ -30,6 +30,14 @@ function cmd(whaler) {
 
             daemon.listen(port, () => {
                 console.warn('[%s] Daemon start listening %s port.', process.pid, port);
+
+                daemon.initListeners((err) => {
+                    if (err) {
+                        console.error('');
+                        console.error('[%s] %s', process.pid, err.message);
+                        console.error('');
+                    }
+                });
             });
         });
 
