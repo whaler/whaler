@@ -15,16 +15,25 @@ function cmd(whaler) {
             ref: 'Container name',
             cmd: 'Command to execute'
         })
-        .option('--no-tty', 'Disable tty binding')
+        .option('--no-tty', 'Disable a pseudo-tty allocation')
+        .option('--no-stdin', 'Disable STDIN attaching')
         .option('--no-entrypoint', 'Disable entrypoint')
         .action(function* (ref, cmd, options) {
             ref = this.util.prepare('ref', ref);
             cmd = cmd || process.env.WHALER_RUN_CMD || '/bin/sh';
 
+            let tty = options.tty;
+            let stdin = options.stdin;
+            if ('noninteractive' === process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
+                tty = false;
+                stdin = false;
+            }
+
             const container = yield whaler.$emit('run', {
                 ref: ref,
                 cmd: cmd,
-                tty: options.tty,
+                tty: tty,
+                stdin: stdin,
                 entrypoint: options.entrypoint
             });
 

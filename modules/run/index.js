@@ -49,7 +49,7 @@ function exports(whaler) {
 
         const serviceContainer = docker.getContainer(serviceName + '.' + appName);
         const info = yield serviceContainer.inspect.$call(serviceContainer);
-        const attachStdin = options['tty'];
+        const attachStdin = options['stdin'];
 
         if ('string' === typeof options['cmd']) {
             options['cmd'] = docker.util.parseCmd(options['cmd']);
@@ -67,7 +67,7 @@ function exports(whaler) {
             'AttachStdout': true,
             'AttachStderr': true,
             'OpenStdin': attachStdin,
-            'Tty': true
+            'Tty': options['tty']
         };
 
         const startOpts = {
@@ -94,7 +94,7 @@ function exports(whaler) {
                     stderr: true
                 });
 
-                revertPipe = pipe(whaler, stream, attachStdin);
+                revertPipe = pipe(whaler, stream, attachStdin, options['tty']);
 
                 yield container.start.$call(container, startOpts);
 
@@ -137,12 +137,21 @@ function exports(whaler) {
  * @param whaler
  * @param stream
  * @param attachStdin
+ * @param tty
  * @returns {Function}
  */
-function pipe(whaler, stream, attachStdin) {
+function pipe(whaler, stream, attachStdin, tty) {
+    let unpipeStream = function() {};
 
-    stream.setEncoding('utf8');
-    stream.pipe(process.stdout, { end: false });
+    if (tty) {
+        stream.setEncoding('utf8');
+        stream.pipe(process.stdout, { end: false });
+        unpipeStream = function() {
+            stream.unpipe(process.stdout);
+        };
+    } else {
+        whaler.get('docker').modem.demuxStream(stream, process.stdout, process.stderr);
+    }
 
     const CTRL_ALT_C = '\u001B\u0003';
     const isRaw = process.isRaw;
@@ -164,7 +173,7 @@ function pipe(whaler, stream, attachStdin) {
             stream.end();
         }
 
-        stream.unpipe(process.stdout);
+        unpipeStream();
 
         if (attachStdin) {
             process.stdin.removeListener('data', keyPress);
