@@ -77,10 +77,28 @@ function exports(whaler) {
             config['labels']['whaler.app'] = appName;
             config['labels']['whaler.service'] = name;
 
+            if (!process.env.WHALER_START_FRONTEND) {
+                process.env.WHALER_START_FRONTEND = 'interactive';
+                if ('noninteractive' === process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
+                    process.env.WHALER_START_FRONTEND = 'noninteractive';
+                }
+            }
+
+            let tty = false;
+            let attachStdin = false;
+            if ('interactive' === process.env.WHALER_START_FRONTEND) {
+                tty = true;
+                attachStdin = true;
+            }
+
             const createOpts = {
                 'name': name + '.' + appName,
                 'Image': config['image'] || 'whaler_' + appName + '_' + name,
-                'Tty': true,
+                'Tty': tty,
+                'OpenStdin': attachStdin,
+                'AttachStdin': attachStdin,
+                'AttachStdout': true,
+                'AttachStderr': true,
                 'Env': config['env'],
                 'Labels': config['labels'],
                 'ExposedPorts': {},
