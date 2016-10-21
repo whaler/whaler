@@ -75,15 +75,16 @@ function exports(whaler) {
             'AttachStdout': true,
             'AttachStderr': true,
             'OpenStdin': attachStdin,
-            'Tty': options['tty']
+            'Tty': options['tty'],
+            'HostConfig': {
+                'ExtraHosts': extraHosts,
+                'Binds': info['HostConfig']['Binds'],
+                'VolumesFrom': info['HostConfig']['VolumesFrom']
+            }
         };
         createOpts['Labels']['whaler.on-die'] = 'remove';
 
-        const startOpts = {
-            'ExtraHosts': extraHosts,
-            'Binds': info['HostConfig']['Binds'],
-            'VolumesFrom': info['HostConfig']['VolumesFrom']
-        };
+        const startOpts = {};
 
         const container = yield docker.createContainer.$call(docker, createOpts);
 
@@ -118,8 +119,8 @@ function exports(whaler) {
 
                     yield container.start.$call(container, startOpts);
 
-                    if (attachStdin) {
-                        revertResize = resize(container);
+                    if (options['tty']) {
+                        revertResize = docker.util.resizeTTY(container);
                     }
 
                     data = yield container.wait.$call(container);
@@ -203,29 +204,5 @@ function pipe(whaler, stream, attachStdin, tty) {
             process.stdin.resume();
             process.stdin.pause();
         }
-    }
-}
-
-/**
- * Resize tty
- * @param container
- */
-function resize(container) {
-    const resizeContainer = function() {
-        const dimensions = {
-            h: process.stdout.rows,
-            w: process.stderr.columns
-        };
-
-        if (dimensions.h != 0 && dimensions.w != 0) {
-            container.resize(dimensions, () => {});
-        }
-    };
-
-    resizeContainer();
-    process.stdout.on('resize', resizeContainer);
-
-    return function revert() {
-        process.stdout.removeListener('resize', resizeContainer);
     }
 }

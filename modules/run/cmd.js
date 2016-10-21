@@ -16,16 +16,15 @@ function cmd(whaler) {
             cmd: 'Command to execute'
         })
         .option('-d, --detach', 'Run container in background and print container ID')
-        .option('--no-tty', 'Disable a pseudo-tty allocation')
-        .option('--no-stdin', 'Disable STDIN attaching')
         .option('--no-entrypoint', 'Disable entrypoint')
+        .option('--non-interactive', 'Run command in non-interactive mode')
         .action(function* (ref, cmd, options) {
             ref = this.util.prepare('ref', ref);
             cmd = cmd || process.env.WHALER_RUN_CMD || '/bin/sh';
 
-            let tty = options.tty;
-            let stdin = options.stdin;
-            if (options.detach || 'noninteractive' === process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
+            let tty = true;
+            let stdin = true;
+            if (options.detach || options.nonInteractive || 'noninteractive' === process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
                 tty = false;
                 stdin = false;
             }
