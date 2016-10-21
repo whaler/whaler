@@ -1,11 +1,22 @@
 #!/bin/sh
 
+OS=linux
 VERSION=latest
+DIR=/usr/local/bin
+FILE=whaler
 
 for i in "$@"; do
 case $i in
     --version=*)
         VERSION="${i#*=}"
+        shift
+    ;;
+    --dir=*)
+        DIR="${i#*=}"
+        shift
+    ;;
+    --file=*)
+        FILE="${i#*=}"
         shift
     ;;
     *)
@@ -14,29 +25,35 @@ case $i in
 esac
 done
 
+case "$OSTYPE" in
+    darwin*)
+        OS=darwin
+    ;;
+    *)
+        # other os
+    ;;
+esac
+
 setup_client() {
-    mkdir -p /usr/local/bin/
-    curl -SL -o /usr/local/bin/whaler https://github.com/whaler/whaler-client/releases/download/$1_amd64/whaler
-    if [ -f /usr/local/bin/whaler ]; then
-        chmod 0755 /usr/local/bin/whaler
+    mkdir -p $DIR
+    curl -SL -o $DIR/$FILE https://github.com/whaler/whaler-client/releases/download/$1_amd64/whaler
+    if [ -f $DIR/$FILE ]; then
+        chmod 0755 $DIR/$FILE
     fi
 }
 
 setup_whaler() {
-    /usr/local/bin/whaler setup --version $1
+    $DIR/$FILE setup --version $1
 }
 
 if [ ! -z "$SUDO_USER" ]; then
-    setup_client linux
+    setup_client $OS
 else
-    case "$OSTYPE" in
-        darwin*)
-            setup_client darwin
-            setup_whaler $VERSION
-        ;;
-        *)
-            curl -sSL https://raw.githubusercontent.com/whaler/whaler/master/.docker/setup.sh | sudo sh -s -- --version="$VERSION"
-            setup_whaler $VERSION
-        ;;
-    esac
+    if [ -w $DIR ]; then
+        setup_client $OS
+        setup_whaler $VERSION
+    else
+        curl -sSL https://raw.githubusercontent.com/whaler/whaler/master/.docker/setup.sh | sudo sh -s -- --version="$VERSION" --dir="$DIR" --file="$FILE"
+        setup_whaler $VERSION
+    fi
 fi
