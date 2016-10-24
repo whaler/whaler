@@ -10,6 +10,6 @@ if (!stats.isSocket()) {
 }
 
 module.exports = new Docker({
-    version: 'v1.20',
+    version: process.env.WHALER_DOCKER_API || 'v1.20',
     socketPath: socket
 });
