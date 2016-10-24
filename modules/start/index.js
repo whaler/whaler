@@ -64,13 +64,6 @@ function exports(whaler) {
             }
         }
 
-        if (!process.env.WHALER_START_FRONTEND) {
-            process.env.WHALER_START_FRONTEND = 'interactive';
-            if ('noninteractive' === process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
-                process.env.WHALER_START_FRONTEND = 'noninteractive';
-            }
-        }
-
         const containers = {};
         const extraHosts = yield getExtraHosts.$call(null, docker, appName);
 
@@ -89,8 +82,17 @@ function exports(whaler) {
                     console.warn('');
                     console.warn('[%s] Container "%s.%s" already running.', process.pid, name, appName);
                 } else {
+                    let waitMode = 'noninteractive';
+                    if (info['Config']['Labels'] && info['Config']['Labels']['whaler.wait']) {
+                        if (process.env.WHALER_WAIT_MODE) {
+                            waitMode = process.env.WHALER_WAIT_MODE;
+                        } else if ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY) {
+                            waitMode = 'interactive';
+                        }
+                    }
+
                     let needRebuild = false;
-                    if ('interactive' === process.env.WHALER_START_FRONTEND) {
+                    if ('interactive' === waitMode) {
                         if (!info['Config']['Tty']) {
                             needRebuild = true;
                             console.warn('');

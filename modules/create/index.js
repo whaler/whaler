@@ -77,16 +77,20 @@ function exports(whaler) {
             config['labels']['whaler.app'] = appName;
             config['labels']['whaler.service'] = name;
 
-            if (!process.env.WHALER_START_FRONTEND) {
-                process.env.WHALER_START_FRONTEND = 'interactive';
-                if ('noninteractive' === process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
-                    process.env.WHALER_START_FRONTEND = 'noninteractive';
+            let waitMode = 'noninteractive';
+            if (config['wait']) {
+                config['labels']['whaler.wait'] = config['wait'].toString();
+
+                if (process.env.WHALER_WAIT_MODE) {
+                    waitMode = process.env.WHALER_WAIT_MODE;
+                } else if ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY) {
+                    waitMode = 'interactive';
                 }
             }
 
             let tty = false;
             let attachStdin = false;
-            if ('interactive' === process.env.WHALER_START_FRONTEND) {
+            if ('interactive' === waitMode) {
                 tty = true;
                 attachStdin = true;
             }
@@ -191,10 +195,6 @@ function exports(whaler) {
                 try {
                     yield docker.followPull.$call(docker, createOpts['Image']);
                 } catch (e) {}
-            }
-
-            if (config['wait']) {
-                createOpts['Labels']['whaler.wait'] = config['wait'].toString();
             }
 
             if (config['workdir']) {
