@@ -17,16 +17,16 @@ function cmd(whaler) {
         .action(function* (ref, options) {
             ref = this.util.prepare('ref', ref);
 
-            const stream = yield whaler.$emit('logs', {
+            const container = yield whaler.$emit('logs', {
                 ref: ref
             });
 
             whaler.before('SIGINT', function* () {
-                stream.socket.end();
+                yield container.exit.$call(null);
             });
 
-            stream.setEncoding('utf8');
-            stream.pipe(process.stdout, { end: true });
+            yield container.followLogs.$call(null);
+
         });
 
 }

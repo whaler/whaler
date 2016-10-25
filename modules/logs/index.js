@@ -12,11 +12,39 @@ function exports(whaler) {
         const docker = whaler.get('docker');
         const container = docker.getContainer(options['ref']);
 
-        return yield container.logs.$call(container, {
-            follow: true,
-            stdout: true,
-            stderr: true
-        });
+        let stream;
+
+        container.followLogs = function* () {
+            const info = yield container.inspect.$call(container);
+
+            stream = yield container.logs.$call(container, {
+                follow: true,
+                stdout: true,
+                stderr: true
+            });
+
+            if (info['Config']['Tty']) {
+                stream.setEncoding('utf8');
+                stream.pipe(process.stdout, { end: true });
+
+            } else {
+                docker.modem.demuxStream(stream, process.stdout, process.stderr);
+            }
+        };
+
+        container.exit = function* () {
+            if (stream) {
+                if (stream.end) {
+                    stream.end();
+                } else if (stream.socket) {
+                    if (stream.socket.end) {
+                        stream.socket.end();
+                    }
+                }
+            }
+        };
+
+        return container;
     });
 
 }
