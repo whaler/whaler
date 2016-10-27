@@ -1,5 +1,7 @@
 'use strict';
 
+var colors = require('colors/safe');
+
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
 
@@ -51,7 +53,7 @@ function exports(whaler) {
 
             const appName = name + '.' + options['name'];
             response.push([
-                color ? appName[color] : appName,
+                color ? colors[color](appName) : appName,
                 status,
                 ip
             ]);

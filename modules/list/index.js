@@ -1,5 +1,7 @@
 'use strict';
 
+var colors = require('colors/safe');
+
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
 
@@ -48,7 +50,7 @@ function exports(whaler) {
                         value = '-';
                     }
                 } catch (e) {}
-                status.push(color ? value[color] : value);
+                status.push(color ? colors[color](value) : value);
             }
 
             response.push([appName, app.env, status.join('|'), app.path || '']);
