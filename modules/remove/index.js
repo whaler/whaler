@@ -84,6 +84,13 @@ function exports(whaler) {
                 console.warn('[%s] Service "%s" removed.', process.pid, serviceName);
 
             } else {
+                if (docker.modem.version >= 'v1.21') {
+                    try {
+                        const appNetwork = docker.getNetwork('whaler:' + appName);
+                        yield appNetwork.remove.$call(appNetwork, {});
+                    } catch (e) {}
+                }
+
                 try {
                     yield fs.stat.$call(null, '/var/lib/whaler/volumes/' + appName);
                     yield deleteFolderRecursive.$call(null, '/var/lib/whaler/volumes/' + appName);

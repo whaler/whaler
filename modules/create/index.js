@@ -46,6 +46,28 @@ function exports(whaler) {
 
         const vars = yield whaler.$emit('vars', {});
 
+        let appNetwork = null;
+        let whalerNetwork = null;
+        if (docker.modem.version >= 'v1.21') {
+            try {
+                whalerNetwork = yield docker.createNetwork.$call(docker, {
+                    'Name': 'whaler',
+                    'CheckDuplicate': true
+                });
+            } catch (e) {
+                whalerNetwork = docker.getNetwork('whaler');
+            }
+
+            try {
+                appNetwork = yield docker.createNetwork.$call(docker, {
+                    'Name': 'whaler:' + appName,
+                    'CheckDuplicate': true
+                });
+            } catch (e) {
+                appNetwork = docker.getNetwork('whaler:' + appName);
+            }
+        }
+
         for (let name of services) {
             const config = appConfig['data']['services'][name];
 
@@ -339,6 +361,21 @@ function exports(whaler) {
             }
 
             const container = yield docker.createContainer.$call(docker, createOpts);
+
+            if (whalerNetwork) {
+                yield whalerNetwork.connect.$call(whalerNetwork, {
+                    'Container': container.id
+                });
+            }
+
+            if (appNetwork) {
+                yield appNetwork.connect.$call(appNetwork, {
+                    'Container': container.id,
+                    'EndpointConfig': {
+                        'Aliases': [name]
+                    }
+                });
+            }
 
             console.info('');
             console.info('[%s] Container "%s.%s" created.', process.pid, name, appName);

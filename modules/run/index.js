@@ -35,15 +35,18 @@ function exports(whaler) {
             })
         });
 
-        const extraHosts = [];
-        if (containers) {
-            for (let data of containers) {
-                const parts = data['Names'][0].substr(1).split('.');
-                try {
-                    const container = docker.getContainer(data['Id']);
-                    const info = yield container.inspect.$call(container);
-                    extraHosts.push(parts[0] + ':' + info['NetworkSettings']['IPAddress']);
-                } catch (e) {}
+        let extraHosts = false;
+        if (!(docker.modem.version >= 'v1.21')) {
+            extraHosts = [];
+            if (containers) {
+                for (let data of containers) {
+                    const parts = data['Names'][0].substr(1).split('.');
+                    try {
+                        const container = docker.getContainer(data['Id']);
+                        const info = yield container.inspect.$call(container);
+                        extraHosts.push(parts[0] + ':' + info['NetworkSettings']['IPAddress']);
+                    } catch (e) {}
+                }
             }
         }
 
@@ -77,7 +80,7 @@ function exports(whaler) {
             'OpenStdin': attachStdin,
             'Tty': options['tty'],
             'HostConfig': {
-                'ExtraHosts': extraHosts,
+                'ExtraHosts': extraHosts || [],
                 'Binds': info['HostConfig']['Binds'],
                 'VolumesFrom': info['HostConfig']['VolumesFrom']
             }
@@ -87,6 +90,18 @@ function exports(whaler) {
         const startOpts = {};
 
         const container = yield docker.createContainer.$call(docker, createOpts);
+
+        if (false === extraHosts) {
+            let whalerNetwork = docker.getNetwork('whaler');
+            yield whalerNetwork.connect.$call(whalerNetwork, {
+                'Container': container.id
+            });
+
+            let appNetwork = docker.getNetwork('whaler:' + appName);
+            yield appNetwork.connect.$call(appNetwork, {
+                'Container': container.id
+            });
+        }
 
         container.run = function* () {
 

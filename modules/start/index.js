@@ -65,7 +65,11 @@ function exports(whaler) {
         }
 
         const containers = {};
-        const extraHosts = yield getExtraHosts.$call(null, docker, appName);
+
+        let extraHosts = false;
+        if (!(docker.modem.version >= 'v1.21')) {
+            extraHosts = yield getExtraHosts.$call(null, docker, appName);
+        }
 
         for (let name of services) {
             let container = docker.getContainer(name + '.' + appName);
@@ -127,8 +131,11 @@ function exports(whaler) {
 
                 info = yield container.inspect.$call(container);
 
-                const startOpts = info['HostConfig'];
-                startOpts['ExtraHosts'] = extraHosts;
+                let startOpts = {};
+                if (false !== extraHosts) {
+                    startOpts = info['HostConfig'];
+                    startOpts['ExtraHosts'] = extraHosts;
+                }
 
                 let wait = false;
                 if (info['Config']['Labels'] && info['Config']['Labels']['whaler.wait']) {
@@ -141,7 +148,9 @@ function exports(whaler) {
 
                 var data = yield container.start.$call(container, startOpts);
 
-                injectIps.$call(null, docker, appName);
+                if (false !== extraHosts) {
+                    injectIps.$call(null, docker, appName);
+                }
 
                 if (wait) {
                     let stream = null;
@@ -185,7 +194,9 @@ function exports(whaler) {
                 console.info('[%s] Container "%s.%s" started.', process.pid, name, appName);
             }
 
-            extraHosts.push(name + ':' + info['NetworkSettings']['IPAddress']);
+            if (false !== extraHosts) {
+                extraHosts.push(name + ':' + info['NetworkSettings']['IPAddress']);
+            }
 
             containers[name] = container;
         }
