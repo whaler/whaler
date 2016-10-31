@@ -142,9 +142,9 @@ function exports(whaler) {
                     wait = str2time(info['Config']['Labels']['whaler.wait']);
                 }
 
-                if (info['LogPath']) {
-                    yield fs.truncate.$call(null, info['LogPath'], 0);
-                }
+                // if (info['LogPath']) {
+                //     yield fs.truncate.$call(null, info['LogPath'], 0);
+                // }
 
                 var data = yield container.start.$call(container, startOpts);
 
@@ -171,7 +171,8 @@ function exports(whaler) {
                         stream = yield container.logs.$call(container, {
                             follow: true,
                             stdout: true,
-                            stderr: true
+                            stderr: true,
+                            since: Math.floor(new Date().getTime() / 1000)
                         });
                     }
 
