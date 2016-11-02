@@ -67,6 +67,7 @@ function exports(whaler) {
 
         const createOpts = {
             'name': serviceName + '.' + appName + nameSuffix,
+            'Hostname': '',
             'Cmd': options['cmd'],
             'Env': info['Config']['Env'],
             'Labels': {},

@@ -119,6 +119,7 @@ function exports(whaler) {
 
             const createOpts = {
                 'name': name + '.' + appName,
+                'Hostname': name + '.' + appName,
                 'Image': config['image'] || 'whaler_' + appName + '_' + name,
                 'Tty': tty,
                 'OpenStdin': attachStdin,
