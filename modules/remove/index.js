@@ -24,10 +24,11 @@ function exports(whaler) {
         const docker = whaler.get('docker');
         const storage = whaler.get('apps');
         const app = yield storage.get.$call(storage, appName);
-        const services = [];
+
+        let services = Object.keys(app.config['data']['services']);
 
         if (serviceName) {
-            services.push(serviceName);
+            services = [serviceName];
 
         } else {
             const containers = yield docker.listContainers.$call(docker, {
@@ -41,7 +42,9 @@ function exports(whaler) {
 
             for (let data of containers) {
                 const parts = data['Names'][0].substr(1).split('.');
-                services.push(parts[0]);
+                if (-1 === services.indexOf(parts[0])) {
+                    services.push(parts[0]);
+                }
             }
         }
 
@@ -51,13 +54,20 @@ function exports(whaler) {
             console.info('');
             console.info('[%s] Removing "%s.%s" container.', process.pid, name, appName);
 
-            yield container.remove.$call(container, {
-                v: true,
-                force: true
-            });
+            try {
+                yield container.remove.$call(container, {
+                    v: true,
+                    force: true
+                });
 
-            console.info('');
-            console.info('[%s] Container "%s.%s" removed.', process.pid, name, appName);
+                console.info('');
+                console.info('[%s] Container "%s.%s" removed.', process.pid, name, appName);
+
+            } catch (e) {
+
+                console.warn('');
+                console.warn('[%s] Container "%s.%s" already removed.', process.pid, name, appName);
+            }
 
             if (options['purge']) {
                 const config = app.config['data']['services'][name];
