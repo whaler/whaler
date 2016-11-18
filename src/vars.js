@@ -2,12 +2,12 @@
 
 var Storage = require('../lib/storage');
 
-module.exports = new Vars();
+module.exports = new Vars('/var/lib/whaler/storage/vars');
+module.exports.Vars = Vars;
 
-function Vars() {
-    this._storage = new Storage('/var/lib/whaler/storage/vars');
-
-    this.errors = {
+function Vars(filename) {
+    this._storage = new Storage(filename);
+    this._storage.errors = {
         '"%s" not found.': 'An var with "%s" name not found.'
     };
 }

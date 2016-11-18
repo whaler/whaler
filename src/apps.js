@@ -3,12 +3,12 @@
 var yaml = require('js-yaml');
 var Storage = require('../lib/storage');
 
-module.exports = new Apps();
+module.exports = new Apps('/var/lib/whaler/storage/apps');
+module.exports.Apps = Apps;
 
-function Apps() {
-    this._storage = new Storage('/var/lib/whaler/storage/apps');
-
-    this.errors = {
+function Apps(filename) {
+    this._storage = new Storage(filename);
+    this._storage.errors = {
         '"%s" not found.': 'An application with "%s" name not found.',
         '"%s" already exists.': 'An application with "%s" name already exists.'
     };
@@ -109,6 +109,8 @@ function prepareDataToGet(data) {
                 services: {}
             };
         }
+
+        //delete data['config']['version'];
     }
 
     return data;
