@@ -14,11 +14,17 @@ function Whaler() {
 
 util.inherits(Whaler, EventEmitter);
 
+/**
+ * @prototype
+ * @param gen
+ * @param callback
+ */
 Whaler.prototype.$async = function(gen, callback) {
     gen.$async(callback)();
 };
 
 /**
+ * @api
  * @param id
  */
 Whaler.prototype.require = function(id) {
@@ -26,6 +32,7 @@ Whaler.prototype.require = function(id) {
 };
 
 /**
+ * @api
  * @param id
  */
 Whaler.prototype.get = function(id) {
