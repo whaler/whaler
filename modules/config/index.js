@@ -88,6 +88,7 @@ function prepareConfig(config, env) {
     config = config || {};
     config = prepareConfigEnv(config, env);
     if (config['services'] || null) {
+        const scale = {};
         const services = config['services'];
         for (let key in services) {
             if (services[key]['extend']) {
@@ -122,7 +123,31 @@ function prepareConfig(config, env) {
             if (services[key]['wait'] && 'string' !== typeof services[key]['wait']) {
                 services[key]['wait'] = services[key]['wait'] + 's';
             }
+
+            // experimental
+            if (services[key].hasOwnProperty('scale')) {
+                if (services[key]['scale']) {
+                    scale[key] = services[key]['scale'];
+                }
+                delete services[key]['scale'];
+            }
         }
+
+        // experimental
+        if (Object.keys(scale).length) {
+            const newServices = {};
+            for (let key in services) {
+                if (scale[key] || false) {
+                    for (let i = 1; i <= scale[key]; i++) {
+                        newServices[key + i] = services[key];
+                    }
+                } else {
+                    newServices[key] = services[key];
+                }
+            }
+            config['services'] = newServices;
+        }
+
     } else {
         config['services'] = {};
     }
