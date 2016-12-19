@@ -4,3 +4,4 @@
 /examples
 /plugins
 /dev.json
+*.spec.js
