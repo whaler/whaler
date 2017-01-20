@@ -47,8 +47,12 @@ function cmd(whaler) {
             if (options.detach) {
                 console.log(data['Id']);
 
-            } else if (137 !== data['StatusCode']) {
-                yield container.exit.$call(null);
+            } else {
+                const CTRL_ALT_C = 137;
+                if (CTRL_ALT_C !== data['StatusCode']) {
+                    yield container.exit.$call(null);
+                }
+                process.exit(data['StatusCode']);
             }
         })
         .ignoreEndLine(true);
