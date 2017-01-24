@@ -220,6 +220,16 @@ function exports(whaler) {
                 } catch (e) {}
             }
 
+            const image = docker.getImage(createOpts['Image']);
+            const info = yield image.inspect.$call(image);
+
+            if (imageId && imageId != info['Id']) {
+                try {
+                    const image = docker.getImage(imageId);
+                    yield image.remove.$call(image);
+                } catch (e) {}
+            }
+
             if (config['workdir']) {
                 createOpts['WorkingDir'] = config['workdir'];
             }
@@ -231,7 +241,7 @@ function exports(whaler) {
             if (config['cmd']) {
                 if ('string' === typeof config['cmd']) {
                     if (config['cmd'].indexOf('\n') !== -1) {
-                        var dir = '/var/lib/whaler/volumes/' + appName + '/' + name;
+                        const dir = '/var/lib/whaler/volumes/' + appName + '/' + name;
                         const cmd = dir + '/cmd';
 
                         yield mkdirp.$call(null, dir);
@@ -241,22 +251,21 @@ function exports(whaler) {
                         config['cmd'] = '/usr/bin/@cmd';
                     }
 
-                    config['cmd'] = docker.util.parseCmd(config['cmd']);
+                    let hasEntrypoint = !!info['Config']['Entrypoint'] && info['Config']['Entrypoint'].length;
+                    if (createOpts['Entrypoint']) {
+                        hasEntrypoint = !!createOpts['Entrypoint'] && createOpts['Entrypoint'].length;
+                    }
+
+                    if (hasEntrypoint) {
+                        config['cmd'] = docker.util.parseCmd(config['cmd']);
+                    } else {
+                        config['cmd'] = ['/bin/sh', '-c', config['cmd']];
+                    }
                 }
                 createOpts['Cmd'] = config['cmd'];
             }
 
             let volumes = [];
-            const image = docker.getImage(createOpts['Image']);
-            const info = yield image.inspect.$call(image);
-
-            if (imageId && imageId != info['Id']) {
-                try {
-                    const image = docker.getImage(imageId);
-                    yield image.remove.$call(image);
-                } catch (e) {}
-            }
-
             if (info['ContainerConfig']['Volumes']) {
                 volumes = Object.keys(info['ContainerConfig']['Volumes']);
             }

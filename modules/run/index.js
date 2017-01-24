@@ -55,7 +55,12 @@ function exports(whaler) {
         const attachStdin = options['stdin'];
 
         if ('string' === typeof options['cmd']) {
-            options['cmd'] = docker.util.parseCmd(options['cmd']);
+            const hasEntrypoint = !!info['Config']['Entrypoint'] && info['Config']['Entrypoint'].length && options['entrypoint'];
+            if (hasEntrypoint) {
+                options['cmd'] = docker.util.parseCmd(options['cmd']);
+            } else {
+                options['cmd'] = ['/bin/sh', '-c', options['cmd']];
+            }
         }
 
         let nameSuffix;
@@ -73,7 +78,7 @@ function exports(whaler) {
             'Labels': {},
             'Image': info['Config']['Image'],
             'WorkingDir': info['Config']['WorkingDir'],
-            'Entrypoint': false === options['entrypoint'] ? null : info['Config']['Entrypoint'],
+            'Entrypoint': false === options['entrypoint'] ? [] : info['Config']['Entrypoint'],
             'StdinOnce': false,
             'AttachStdin': attachStdin,
             'AttachStdout': true,
