@@ -3,11 +3,11 @@
 var yaml = require('js-yaml');
 var Storage = require('../lib/storage');
 
-module.exports = new Apps('/var/lib/whaler/storage/apps');
+module.exports = new Apps('apps');
 module.exports.Apps = Apps;
 
-function Apps(filename) {
-    this._storage = new Storage(filename);
+function Apps(name) {
+    this._storage = new Storage(name);
     this._storage.errors = {
         '"%s" not found.': 'An application with "%s" name not found.',
         '"%s" already exists.': 'An application with "%s" name already exists.'
