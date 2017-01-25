@@ -60,11 +60,11 @@ function exports(whaler) {
 
             try {
                 appNetwork = yield docker.createNetwork.$call(docker, {
-                    'Name': 'whaler:' + appName,
+                    'Name': 'whaler.' + appName,
                     'CheckDuplicate': true
                 });
             } catch (e) {
-                appNetwork = docker.getNetwork('whaler:' + appName);
+                appNetwork = docker.getNetwork('whaler.' + appName);
             }
         }
 

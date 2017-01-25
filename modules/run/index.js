@@ -103,7 +103,7 @@ function exports(whaler) {
                 'Container': container.id
             });
 
-            let appNetwork = docker.getNetwork('whaler:' + appName);
+            let appNetwork = docker.getNetwork('whaler.' + appName);
             yield appNetwork.connect.$call(appNetwork, {
                 'Container': container.id
             });
