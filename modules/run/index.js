@@ -98,12 +98,12 @@ function exports(whaler) {
         const container = yield docker.createContainer.$call(docker, createOpts);
 
         if (false === extraHosts) {
-            let whalerNetwork = docker.getNetwork('whaler');
+            let whalerNetwork = docker.getNetwork('whaler_nw');
             yield whalerNetwork.connect.$call(whalerNetwork, {
                 'Container': container.id
             });
 
-            let appNetwork = docker.getNetwork('whaler.' + appName);
+            let appNetwork = docker.getNetwork('whaler_nw.' + appName);
             yield appNetwork.connect.$call(appNetwork, {
                 'Container': container.id
             });

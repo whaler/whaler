@@ -96,7 +96,7 @@ function exports(whaler) {
             } else {
                 if (docker.modem.version >= 'v1.21') {
                     try {
-                        const appNetwork = docker.getNetwork('whaler.' + appName);
+                        const appNetwork = docker.getNetwork('whaler_nw.' + appName);
                         yield appNetwork.remove.$call(appNetwork, {});
                     } catch (e) {}
                 }

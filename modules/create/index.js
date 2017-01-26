@@ -51,20 +51,20 @@ function exports(whaler) {
         if (docker.modem.version >= 'v1.21') {
             try {
                 whalerNetwork = yield docker.createNetwork.$call(docker, {
-                    'Name': 'whaler',
+                    'Name': 'whaler_nw',
                     'CheckDuplicate': true
                 });
             } catch (e) {
-                whalerNetwork = docker.getNetwork('whaler');
+                whalerNetwork = docker.getNetwork('whaler_nw');
             }
 
             try {
                 appNetwork = yield docker.createNetwork.$call(docker, {
-                    'Name': 'whaler.' + appName,
+                    'Name': 'whaler_nw.' + appName,
                     'CheckDuplicate': true
                 });
             } catch (e) {
-                appNetwork = docker.getNetwork('whaler.' + appName);
+                appNetwork = docker.getNetwork('whaler_nw.' + appName);
             }
         }
 
