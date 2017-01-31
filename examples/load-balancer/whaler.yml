@@ -1,0 +1,39 @@
+services:
+
+    flask:
+        scale: 3
+        dockerfile: |
+            FROM python:2.7.8
+            RUN pip install Flask
+        workdir: /usr/src/app
+        volumes:
+            - .:/usr/src/app
+        cmd: python app.py
+
+    nginx:
+        ports:
+            - 5000:5000
+        build:
+            - ./nginx.conf: |
+                events {
+                    worker_connections  1024;
+                }
+                http {
+                    upstream flask {
+                        server flask1:5000;
+                        server flask2:5000;
+                        server flask3:5000;
+                    }
+                    server {
+                        listen 5000;
+
+                        location / {
+                            proxy_pass http://flask;
+                        }
+                    }
+                }
+                daemon off;
+            - Dockerfile: |
+                FROM nginx:1.10
+                ADD ./nginx.conf /etc/nginx/nginx.conf
+        cmd: nginx
