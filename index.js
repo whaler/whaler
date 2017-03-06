@@ -5,6 +5,7 @@ require('x-node').inject();
 var fs = require('fs');
 var util = require('util');
 var EventEmitter = require('x-node/events');
+var parseEnv = require('./lib/parse-env');
 
 module.exports = Whaler;
 
@@ -84,36 +85,19 @@ function mkdir(dir) {
 
 function loadEnv(envFile) {
     if (fs.existsSync(envFile)) {
-        let lines;
+        let content;
         try {
-            lines = (fs.readFileSync(envFile, 'utf8') || '')
-                .split(/\r?\n|\r/)
-                .filter((line) => {
-                    return /\s*=\s*/i.test(line);
-                })
-                .map((line) => {
-                    return line.replace('export ', '');
-                });
-
+            content = fs.readFileSync(envFile, 'utf8');
         } catch (e) {
             throw new TypeError('Environment file could not be read: ' + e);
         }
 
-        lines.forEach((line) => {
-            if (/^\s*\#/i.test(line)) {
-                // ignore comment lines (starting with #)
-
-            } else {
-                const env = line.match(/^([^=]+)\s*=\s*(.*)$/);
-                const key = env[1];
-                // remove ' and " characters if right side of = is quoted
-                const value = env[2].match(/^(['"]?)([^\n]*)\1$/m)[2];
-
-                if ('undefined' === typeof process.env[key]) {
-                    process.env[key] = value;
-                }
+        const env = parseEnv(content || '');
+        for (let key in env) {
+            if ('undefined' === typeof process.env[key]) {
+                process.env[key] = env[key];
             }
-        });
+        }
     } else {
         fs.writeFileSync(envFile, fs.readFileSync(__dirname + '/.env'));
     }

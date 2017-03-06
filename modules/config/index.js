@@ -4,6 +4,7 @@ var fs = require('fs');
 var path = require('path');
 var yaml = require('js-yaml');
 var util = require('dockerode/lib/util');
+var parseEnv = require('../../lib/parse-env');
 var renderTemplate = require('../../lib/render-template');
 
 module.exports = exports;
@@ -25,7 +26,7 @@ function exports(whaler) {
         }
 
         if (options['update']) {
-            update['config'] = yield loadConfig.$call(null, app, options);
+            update['config'] = yield loadConfig.$call(whaler, app, options);
         }
 
         if (Object.keys(update).length > 0) {
@@ -35,7 +36,7 @@ function exports(whaler) {
         } else {
             let config = app.config;
             if (options['file']) {
-                config = yield loadConfig.$call(null, app, options);
+                config = yield loadConfig.$call(whaler, app, options);
             }
 
             return config;
@@ -49,64 +50,57 @@ function exports(whaler) {
 /**
  * @param app
  * @param options
- * @returns {Object}
  */
-function loadConfig(app, options, callback) {
+function* loadConfig(app, options) {
+    let data;
+    const whaler = this;
+    const vars = yield prepareVars.$call(whaler, app, options);
     const file = options['file'] || app.config['file'] || app.path + '/whaler.yml';
-
-    const env = {
-        APP_NAME: options['name'],
-        APP_PATH: app.path,
-    };
-
-    let cb = function(data) {
-        // data = data.replace('[app_name]', options['name']);
-        // data = data.replace('[app_path]', app.path);
-        data = yaml.load(data);
-
-        callback(null, {
-            file: file,
-            data: prepareConfig(data, app.env)
-        });
-    };
 
     // deprecated
     if (options['yml']) {
         const tmpFile = file + '.tmp';
-        fs.writeFile(tmpFile, options['yml'], 'utf8', (err) => {
-            if (err) {
-                return callback(err);
-            }
-            renderTemplate(tmpFile, env, (err, data) => {
-                if (err) {
-                    return callback(err);
-                }
-                fs.unlink(tmpFile, (err) => {
-                    if (err) {
-                        return callback(err);
-                    }
-                    cb(data);
-                });
-            });
-        });
-        return null;
-    }
+        yield fs.writeFile.$call(null, tmpFile, options['yml'], 'utf8');
+        data = yield renderTemplate.$call(null, tmpFile, vars);
+        yield fs.unlink.$call(null, tmpFile);
 
-    if (!path.isAbsolute(file)) {
-        return callback(new Error('Config path must be absolute.'));
-    }
-
-    fs.readFile(file, 'utf8', (err, data) => {
-        if (err) {
-            return callback(err);
+    } else {
+        if (!path.isAbsolute(file)) {
+            new Error('Config path must be absolute.');
         }
-        renderTemplate(file, env, (err, data) => {
-            if (err) {
-                return callback(err);
-            }
-            cb(data);
-        });
-    });
+        data = yield renderTemplate.$call(null, file, vars);
+    }
+
+    // data = data.replace('[app_name]', options['name']);
+    // data = data.replace('[app_path]', app.path);
+    data = yaml.load(data);
+
+    return {
+        file: file,
+        data: prepareConfig(data, app.env),
+    };
+}
+
+/**
+ * @param app
+ * @param options
+ */
+function* prepareVars(app, options) {
+    const whaler = this;
+    const vars = yield whaler.$emit('vars');
+
+    try {
+        let content = yield fs.readFile.$call(null, app.path + '/.env', 'utf8');
+        const env = parseEnv(content || '');
+        for (let key in env) {
+            vars[key] = env[key];
+        }
+    } catch (e) {}
+
+    vars['APP_NAME'] = options['name'];
+    vars['APP_PATH'] = app.path;
+
+    return vars;
 }
 
 /**
