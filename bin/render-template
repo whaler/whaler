@@ -1,0 +1,7 @@
+#!/bin/bash
+
+render_template() {
+  eval "echo \"$(sed 's/\"/\\\"/g' $1)\""
+}
+
+render_template $1

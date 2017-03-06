@@ -4,6 +4,7 @@ var fs = require('fs');
 var path = require('path');
 var yaml = require('js-yaml');
 var util = require('dockerode/lib/util');
+var renderTemplate = require('../../lib/render-template');
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
@@ -53,8 +54,14 @@ function exports(whaler) {
 function loadConfig(app, options, callback) {
     const file = options['file'] || app.config['file'] || app.path + '/whaler.yml';
 
+    const env = {
+        APP_NAME: options['name'],
+        APP_PATH: app.path,
+    };
+
     let cb = function(data) {
-        data = data.replace('[app_path]', app.path);
+        // data = data.replace('[app_name]', options['name']);
+        // data = data.replace('[app_path]', app.path);
         data = yaml.load(data);
 
         callback(null, {
@@ -63,8 +70,26 @@ function loadConfig(app, options, callback) {
         });
     };
 
+    // deprecated
     if (options['yml']) {
-        return cb(options['yml']);
+        const tmpFile = file + '.tmp';
+        fs.writeFile(tmpFile, options['yml'], 'utf8', (err) => {
+            if (err) {
+                return callback(err);
+            }
+            renderTemplate(tmpFile, env, (err, data) => {
+                if (err) {
+                    return callback(err);
+                }
+                fs.unlink(tmpFile, (err) => {
+                    if (err) {
+                        return callback(err);
+                    }
+                    cb(data);
+                });
+            });
+        });
+        return null;
     }
 
     if (!path.isAbsolute(file)) {
@@ -75,7 +100,12 @@ function loadConfig(app, options, callback) {
         if (err) {
             return callback(err);
         }
-        cb(data);
+        renderTemplate(file, env, (err, data) => {
+            if (err) {
+                return callback(err);
+            }
+            cb(data);
+        });
     });
 }
 
