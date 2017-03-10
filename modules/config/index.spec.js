@@ -1,5 +1,6 @@
 'use strict';
 
+var fs = require('fs');
 var util = require('util');
 var rewire = require('rewire');
 var assert = require('chai').assert;
@@ -19,8 +20,30 @@ Whaler.prototype.get = function(id) {
 
 describe('modules/config', () => {
     const whaler = new Whaler();
+
+    whaler.on('vars', function* () {
+        return {
+            GLOBAL: 'global',
+            UNUSED: 'global',
+            FILE: 'global'
+        };
+    });
+
     const module = rewire('./index');
     module(whaler);
+
+    const _renderTemplate = module.__get__('renderTemplate');
+    const revertRenderTemplate = module.__set__('renderTemplate', function* (file, vars) {
+        const tmpFile = '/tmp/whaler.yml';
+        const _fs = module.__get__('fs');
+        let yml = yield _fs.readFile.$call(null, file, 'utf8');
+
+        yield fs.writeFile.$call(null, tmpFile, yml, 'utf8');
+        const data = yield _renderTemplate.$call(null, tmpFile, vars);
+        yield fs.unlink.$call(null, tmpFile);
+
+        return data;
+    });
 
     it('app not found', function* () {
         let hasError = false;
@@ -33,6 +56,67 @@ describe('modules/config', () => {
         }
 
         assert.equal(hasError, true);
+    });
+
+    it('prepare config vars', function* () {
+        const appName = 'prepare-config-vars';
+
+        const app = yield storage.add.$call(storage, appName, {
+            path: '/app',
+            env:  'test',
+            config: {}
+        });
+
+        const fsMock = {
+            readFile: function (path, encoding, cb) {
+                if ('/app/whaler.yml' == path) {
+                    cb(null, [
+                        'app_name: ${APP_NAME}',
+                        'app_path: ${APP_PATH}',
+                        'undefined: ${UNDEFINED:=undefined}',
+                        'global: ${GLOBAL:=undefined}',
+                        'file: ${FILE:=undefined}',
+                        'null: ${NULL}'
+                    ].join("\n"));
+                }
+                if ('/app/.env' == path) {
+                    cb(null, [
+                        'UNUSED=file',
+                        'FILE=file'
+                    ].join("\n"));
+                }
+
+                cb(new Error('file "' + path + '" not found'));
+            }
+        };
+        const revert = module.__set__('fs', fsMock);
+
+        let config;
+        let expected;
+
+        config = yield whaler.$emit('config', {
+            name: appName,
+            setEnv: 'dev',
+            update: true
+        });
+
+        expected = [
+            '{',
+                '"file":"/app/whaler.yml",',
+                '"data":{',
+                    '"app_name":"' + appName + '",',
+                    '"app_path":"/app",',
+                    '"undefined":"undefined",',
+                    '"global":"global",',
+                    '"file":"file",',
+                    '"null":null,',
+                    '"services":{}',
+                '}',
+            '}'
+        ].join('');
+        assert.equal(JSON.stringify(config), expected);
+
+        revert();
     });
 
     it('prepare config environment', function* () {
@@ -75,6 +159,7 @@ describe('modules/config', () => {
             setEnv: 'dev',
             update: true
         });
+
         expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"y":{"foo":"bar"},"services":{}}}';
         assert.equal(JSON.stringify(config), expected);
 
