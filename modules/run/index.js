@@ -35,9 +35,13 @@ function exports(whaler) {
             })
         });
 
+        const serviceContainer = docker.getContainer(serviceName + '.' + appName);
+        const info = yield serviceContainer.inspect.$call(serviceContainer);
+        const attachStdin = options['stdin'];
+
         let extraHosts = false;
         if (!(docker.modem.version >= 'v1.21')) {
-            extraHosts = [];
+            extraHosts = info['HostConfig']['ExtraHosts'] || [];
             if (containers) {
                 for (let data of containers) {
                     const parts = data['Names'][0].substr(1).split('.');
@@ -49,10 +53,6 @@ function exports(whaler) {
                 }
             }
         }
-
-        const serviceContainer = docker.getContainer(serviceName + '.' + appName);
-        const info = yield serviceContainer.inspect.$call(serviceContainer);
-        const attachStdin = options['stdin'];
 
         if ('string' === typeof options['cmd']) {
             const hasEntrypoint = !!info['Config']['Entrypoint'] && info['Config']['Entrypoint'].length && options['entrypoint'];
@@ -86,7 +86,7 @@ function exports(whaler) {
             'OpenStdin': attachStdin,
             'Tty': options['tty'],
             'HostConfig': {
-                'ExtraHosts': extraHosts || [],
+                'ExtraHosts': extraHosts || info['HostConfig']['ExtraHosts'],
                 'Binds': info['HostConfig']['Binds'],
                 'VolumesFrom': info['HostConfig']['VolumesFrom']
             }

@@ -135,7 +135,8 @@ function exports(whaler) {
                         '/var/lib/whaler/bin/bridge:/usr/bin/@whaler'
                     ],
                     'PortBindings': {},
-                    'VolumesFrom': null
+                    'VolumesFrom': null,
+                    'ExtraHosts': null
                 }
             };
 
@@ -367,6 +368,20 @@ function exports(whaler) {
                             'HostPort': hostPort
                         }
                     ];
+                }
+            }
+
+            if (config['extra_hosts']) {
+                createOpts['HostConfig']['ExtraHosts'] = [];
+                for (let value of config['extra_hosts']) {
+                    const arr = value.split(':');
+                    if (3 === arr.length && 'container' === arr[1]) {
+                        const container = docker.getContainer(arr[2]);
+                        const info = yield container.inspect.$call(container);
+                        createOpts['HostConfig']['ExtraHosts'].push(arr[0] + ':' + info['NetworkSettings']['IPAddress']);
+                    } else {
+                        createOpts['HostConfig']['ExtraHosts'].push(value);
+                    }
                 }
             }
 
