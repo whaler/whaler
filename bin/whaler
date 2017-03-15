@@ -22,6 +22,8 @@ if (-1 !== index && argv[index + 1]) {
 
 } else {
 
+    whaler.init();
+
     var progress = whaler.get('progress');
     if (!argv.length) {
         console.log('');
@@ -33,7 +35,6 @@ if (-1 !== index && argv[index + 1]) {
     }
 
     (function* () {
-        whaler.init();
 
         const modules = whaler.get('modules');
         const plugins = whaler.get('plugins');

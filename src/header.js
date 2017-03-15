@@ -2,6 +2,7 @@
 
 var fs = require('fs');
 var colors = require('colors/safe');
+var docker = require('./docker');
 
 module.exports = header();
 
@@ -47,14 +48,17 @@ function prepareInfo() {
     let info = fs.readFileSync(__dirname + '/../info.txt', 'utf8');
 
     let version = pkg.version;
+    let dockerAPI = false;
     try {
         const dev = require('../dev.json');
         version = dev.version + (dev.sha ? ' ' + colors.gray(dev.sha.substr(0, 7)) : '');
+        dockerAPI = docker.modem.version.substr(1, docker.modem.version.length);
     } catch(e) {}
 
     info = info.replace('[url]', colors.yellow('URL: ') + pkg.homepage);
     info = info.replace('[author]', colors.yellow('Author: ') + pkg.author.name);
     info = info.replace('[version]', colors.yellow('Version: ') + version);
+    info = info.replace('[dockerAPI]', dockerAPI ? colors.yellow('Docker API: ') + dockerAPI : '');
 
     const data = info.split('\n');
     data.every((line, index) => {
