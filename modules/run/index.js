@@ -74,7 +74,7 @@ function exports(whaler) {
             'name': serviceName + '.' + appName + nameSuffix,
             'Hostname': '',
             'Cmd': options['cmd'],
-            'Env': info['Config']['Env'],
+            'Env': (info['Config']['Env'] || []).concat(options['env'] || []),
             'Labels': {},
             'Image': info['Config']['Image'],
             'WorkingDir': info['Config']['WorkingDir'],

@@ -15,6 +15,7 @@ function cmd(whaler) {
             ref: 'Container name',
             cmd: 'Command to execute'
         })
+        .option('-e, --env <ENV>', 'Set environment variables (default [])', (val, memo) => [...memo, val], [])
         .option('-d, --detach', 'Run container in background and print container ID')
         .option('--no-entrypoint', 'Disable entrypoint')
         .option('--non-interactive', 'Run command in non-interactive mode')
@@ -32,6 +33,7 @@ function cmd(whaler) {
             const container = yield whaler.$emit('run', {
                 ref: ref,
                 cmd: cmd,
+                env: options.env,
                 tty: tty,
                 stdin: stdin,
                 detach: options.detach || false,

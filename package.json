@@ -21,7 +21,7 @@
     "whaler": "bin/whaler"
   },
   "engines": {
-    "node": ">=4.2"
+    "node": ">=6.9"
   },
   "dependencies": {
     "cli-table": "^0.3.1",
