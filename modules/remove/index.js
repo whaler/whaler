@@ -71,15 +71,17 @@ function exports(whaler) {
 
             if (options['purge']) {
                 const config = app.config['data']['services'][name];
-                const imageName = config['image'] || 'whaler_' + appName + '_' + name;
+                if (config) {
+                    const imageName = config['image'] || 'whaler_' + appName + '_' + name;
 
-                try {
-                    const image = docker.getImage(imageName);
-                    yield image.remove.$call(image);
+                    try {
+                        const image = docker.getImage(imageName);
+                        yield image.remove.$call(image);
 
-                    console.warn('');
-                    console.warn('[%s] Image "%s" removed.', process.pid, imageName);
-                } catch (e) {}
+                        console.warn('');
+                        console.warn('[%s] Image "%s" removed.', process.pid, imageName);
+                    } catch (e) {}
+                }
             }
         }
 
