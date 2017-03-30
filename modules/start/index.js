@@ -219,10 +219,9 @@ function pipe(whaler, stream, attachStdin) {
         if (stream) {
             if (stream.end) {
                 stream.end();
-            } else if (stream.socket) {
-                if (stream.socket.end) {
-                    stream.socket.end();
-                }
+            }
+            if (stream.destroy) {
+                stream.destroy();
             }
         }
     };
