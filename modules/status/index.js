@@ -34,12 +34,17 @@ function exports(whaler) {
             }
         }
 
+        let message = null;
         for (let name of services) {
             const container = docker.getContainer(name + '.' + options['name']);
 
             let ip = '-';
             let status = 'NOT CREATED';
             const color = app.config['data']['services'][name] ? null : 'red';
+
+            if (color && !message) {
+                message = colors[color]('*') + ' Volatile container, will be removed on app rebuild.';
+            }
 
             try {
                 const info = yield container.inspect.$call(container);
@@ -53,13 +58,16 @@ function exports(whaler) {
 
             const appName = name + '.' + options['name'];
             response.push([
-                color ? colors[color](appName) : appName,
+                color ? colors[color]('*') + ' ' + appName : appName,
                 status,
                 ip
             ]);
         }
 
-        return response;
+        return {
+            table: response,
+            message: message,
+        };
     });
 
 }

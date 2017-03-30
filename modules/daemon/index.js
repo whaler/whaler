@@ -38,12 +38,13 @@ function exports(whaler) {
                 socket.once('data', (data) => {
                     data = JSON.parse(data.toString());
 
-                    process.env.WHALER_DAEMON_DIR  = dir;
-                    process.env.WHALER_DAEMON_NAME = data['name'];
+                    const env = data['env'] || {};
+                    env.WHALER_DAEMON_DIR  = dir;
+                    env.WHALER_DAEMON_NAME = data['name'];
                     
                     const opt = data['xterm'] || {};
                     opt['cwd'] = dir;
-                    opt['env'] = process.env;
+                    opt['env'] = Object.assign({}, process.env, env);
 
                     let timerId = null;
                     const xterm = pty.spawn(cmd, data['argv'], opt);

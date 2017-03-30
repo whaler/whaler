@@ -37,8 +37,8 @@
     "string-argv": "0.0.2",
     "tar-fs": "^1.15.1",
     "tar-stream": "^1.5.2",
-    "x-commander": "^0.1.1",
-    "x-console": "^0.1.1",
+    "x-commander": "^0.1.2",
+    "x-console": "^0.1.2",
     "x-node": "^0.1.0"
   },
   "devDependencies": {

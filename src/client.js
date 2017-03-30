@@ -48,23 +48,32 @@ function client(host, argv) {
         console.error('[%s] %s', process.pid, message);
         console.error('');
 
-        process.stdin.setRawMode(false);
+        if ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY) {
+            process.stdin.setRawMode(false);
+        }
         process.exit();
     });
 
     client.on('end', () => {
-        process.stdin.setRawMode(false);
+        if ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY) {
+            process.stdin.setRawMode(false);
+        }
         process.exit();
     });
 
     client.on('connect', () => {
         let timerId = null;
-        process.stdin.setRawMode(true);
-        process.stdin.pipe(client);
+        if ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY) {
+            process.stdin.setRawMode(true);
+            process.stdin.pipe(client);
+        }
         client.pipe(process.stdout);
         client.write(JSON.stringify({
             name: path.basename(process.cwd()),
             argv: argv,
+            env: {
+                WHALER_FRONTEND: ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY),
+            },
             xterm: {
                 cols: process.stderr.columns,
                 rows: process.stdout.rows

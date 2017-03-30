@@ -22,19 +22,20 @@ if (-1 !== index && argv[index + 1]) {
 
 } else {
 
-    whaler.init();
-
     var progress = whaler.get('progress');
-    if (!argv.length) {
-        console.log('');
-        console.log(whaler.get('header'));
-        console.log('');
-        progress.start(2);
-    } else {
-        progress.start();
-    }
 
     (function* () {
+
+        yield whaler.init.$call(whaler);
+
+        if (!argv.length) {
+            console.log('');
+            console.log(whaler.get('header'));
+            console.log('');
+            progress.start(2);
+        } else {
+            progress.start();
+        }
 
         const modules = whaler.get('modules');
         const plugins = whaler.get('plugins');
@@ -64,6 +65,7 @@ if (-1 !== index && argv[index + 1]) {
         return whaler.get('cli');
 
     }).$async((err, cli) => {
+
         progress.stop();
 
         if (err) {
@@ -72,10 +74,12 @@ if (-1 !== index && argv[index + 1]) {
             console.error('');
         }
 
-        if (!argv.length) {
-            cli.help();
-        } else {
-            cli.parse(process.argv);
+        if (cli) {
+            if (!argv.length) {
+                cli.help();
+            } else {
+                cli.parse(process.argv);
+            }
         }
 
     })();

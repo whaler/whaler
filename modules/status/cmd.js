@@ -27,7 +27,13 @@ function cmd(whaler) {
             });
 
             console.log('');
-            console.log(table.render(response));
+            console.log(table.render(response.table));
+
+            if (response.message) {
+                console.log('');
+                console.log('  ' + response.message);
+            }
+
         });
 
 }

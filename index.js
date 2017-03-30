@@ -43,7 +43,7 @@ Whaler.prototype.get = function(id) {
 /**
  * Base method
  */
-Whaler.prototype.init = function() {
+Whaler.prototype.init = function(cb = (err) => null) {
     // base
     mkdir('/etc/whaler');
     loadEnv('/etc/whaler/env');
@@ -73,6 +73,8 @@ Whaler.prototype.init = function() {
     //});
     process.stdin.setEncoding('utf8');
     process.stdin.pause();
+
+    cb(null);
 };
 
 // PRIVATE

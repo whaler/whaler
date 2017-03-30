@@ -5,7 +5,6 @@ var jsDiff = require('diff');
 var pkg = require('./package.json');
 var console = require('x-console');
 var colors = require('colors/safe');
-colors.enabled = true;
 
 module.exports = cmd;
 
