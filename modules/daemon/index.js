@@ -58,7 +58,7 @@ function exports(whaler) {
                             if (timerId) {
                                 clearTimeout(timerId);
                             }
-                            timerId = setTimeout(function() {
+                            timerId = setTimeout(() => {
                                 xterm.resize(size.cols - 1, size.rows - 1);
                                 xterm.redraw();
                             }, 30);

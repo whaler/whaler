@@ -30,7 +30,7 @@ function exports(whaler) {
         containers = containers.filter((data) => {
             const parts = data['Names'][0].substr(1).split('.');
             return -1 == services.indexOf(parts[0]);
-        }).map(function(data) {
+        }).map((data) => {
             const labels = data['Labels'] || {};
             const parts = data['Names'][0].substr(1).split('.');
             return Object.assign({
@@ -39,7 +39,7 @@ function exports(whaler) {
                 before: null,
             }, JSON.parse(labels['whaler.position'] || '{}'));
         });
-        containers.sort(function(a, b) {
+        containers.sort((a, b) => {
             if (!a.before || !b.after || a.after == b.name || b.before == a.name) {
                 return 1;
             }
