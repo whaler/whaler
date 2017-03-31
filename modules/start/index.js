@@ -47,7 +47,7 @@ function exports(whaler) {
         } else {
             services = Object.keys(app.config['data']['services']);
 
-            const containers = yield docker.listContainers.$call(docker, {
+            let containers = yield docker.listContainers.$call(docker, {
                 all: true,
                 filters: JSON.stringify({
                     name: [
@@ -56,11 +56,30 @@ function exports(whaler) {
                 })
             });
 
-            for (let data of containers) {
+            containers = containers.filter((data) => {
                 const parts = data['Names'][0].substr(1).split('.');
-                if (-1 == services.indexOf(parts[0])) {
-                    services.push(parts[0]);
+                return -1 == services.indexOf(parts[0]);
+            }).map(function(data) {
+                const labels = data['Labels'] || {};
+                const parts = data['Names'][0].substr(1).split('.');
+                return Object.assign({
+                    name: labels['whaler.service'] || parts[0],
+                    after: null,
+                    before: null,
+                }, JSON.parse(labels['whaler.position'] || '{}'));
+            });
+            containers.sort(function(a, b) {
+                if (!a.before || !b.after || a.after == b.name || b.before == a.name) {
+                    return 1;
                 }
+                if (!a.after || !b.before || a.before == b.name || b.after == a.name) {
+                    return -1;
+                }
+                return 0;
+            });
+
+            for (let data of containers) {
+                services.push(data.name);
             }
         }
 

@@ -68,6 +68,7 @@ function exports(whaler) {
             }
         }
 
+        const keys = Object.keys(appConfig['data']['services']);
         for (let name of services) {
             const config = appConfig['data']['services'][name];
 
@@ -98,6 +99,12 @@ function exports(whaler) {
             }
             config['labels']['whaler.app'] = appName;
             config['labels']['whaler.service'] = name;
+
+            const index = keys.indexOf(name);
+            config['labels']['whaler.position'] = JSON.stringify({
+                after: keys[index - 1] || null,
+                before: keys[index + 1] || null,
+            });
 
             let waitMode = 'noninteractive';
             if (config['wait']) {
