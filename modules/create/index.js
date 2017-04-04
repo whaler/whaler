@@ -48,24 +48,22 @@ function exports(whaler) {
 
         let appNetwork = null;
         let whalerNetwork = null;
-        if (docker.modem.version >= 'v1.21') {
-            try {
-                whalerNetwork = yield docker.createNetwork.$call(docker, {
-                    'Name': 'whaler_nw',
-                    'CheckDuplicate': true
-                });
-            } catch (e) {
-                whalerNetwork = docker.getNetwork('whaler_nw');
-            }
+        try {
+            whalerNetwork = yield docker.createNetwork.$call(docker, {
+                'Name': 'whaler_nw',
+                'CheckDuplicate': true
+            });
+        } catch (e) {
+            whalerNetwork = docker.getNetwork('whaler_nw');
+        }
 
-            try {
-                appNetwork = yield docker.createNetwork.$call(docker, {
-                    'Name': 'whaler_nw.' + appName,
-                    'CheckDuplicate': true
-                });
-            } catch (e) {
-                appNetwork = docker.getNetwork('whaler_nw.' + appName);
-            }
+        try {
+            appNetwork = yield docker.createNetwork.$call(docker, {
+                'Name': 'whaler_nw.' + appName,
+                'CheckDuplicate': true
+            });
+        } catch (e) {
+            appNetwork = docker.getNetwork('whaler_nw.' + appName);
         }
 
         const keys = Object.keys(appConfig['data']['services']);
@@ -385,7 +383,7 @@ function exports(whaler) {
                     if (3 === arr.length && 'container' === arr[1]) {
                         const container = docker.getContainer(arr[2]);
                         const info = yield container.inspect.$call(container);
-                        createOpts['HostConfig']['ExtraHosts'].push(arr[0] + ':' + info['NetworkSettings']['IPAddress']);
+                        createOpts['HostConfig']['ExtraHosts'].push(arr[0] + ':' + info['NetworkSettings']['Networks']['bridge']['IPAddress']);
                     } else {
                         createOpts['HostConfig']['ExtraHosts'].push(value);
                     }

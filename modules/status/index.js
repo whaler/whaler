@@ -69,7 +69,7 @@ function exports(whaler) {
                 const info = yield container.inspect.$call(container);
                 if (info['State']['Running']) {
                     status = 'ON';
-                    ip = info['NetworkSettings']['IPAddress'];
+                    ip = info['NetworkSettings']['Networks']['bridge']['IPAddress'];
                 } else {
                     status = 'OFF';
                 }

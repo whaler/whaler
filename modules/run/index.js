@@ -39,21 +39,6 @@ function exports(whaler) {
         const info = yield serviceContainer.inspect.$call(serviceContainer);
         const attachStdin = options['stdin'];
 
-        let extraHosts = false;
-        if (!(docker.modem.version >= 'v1.21')) {
-            extraHosts = info['HostConfig']['ExtraHosts'] || [];
-            if (containers) {
-                for (let data of containers) {
-                    const parts = data['Names'][0].substr(1).split('.');
-                    try {
-                        const container = docker.getContainer(data['Id']);
-                        const info = yield container.inspect.$call(container);
-                        extraHosts.push(parts[0] + ':' + info['NetworkSettings']['IPAddress']);
-                    } catch (e) {}
-                }
-            }
-        }
-
         if ('string' === typeof options['cmd']) {
             const hasEntrypoint = !!info['Config']['Entrypoint'] && info['Config']['Entrypoint'].length && options['entrypoint'];
             if (hasEntrypoint) {
@@ -86,28 +71,26 @@ function exports(whaler) {
             'OpenStdin': attachStdin,
             'Tty': options['tty'],
             'HostConfig': {
-                'ExtraHosts': extraHosts || info['HostConfig']['ExtraHosts'],
+                'AutoRemove': true,
+                'ExtraHosts': info['HostConfig']['ExtraHosts'],
                 'Binds': info['HostConfig']['Binds'],
                 'VolumesFrom': info['HostConfig']['VolumesFrom']
             }
         };
-        createOpts['Labels']['whaler.on-die'] = 'remove';
 
         const startOpts = {};
 
         const container = yield docker.createContainer.$call(docker, createOpts);
 
-        if (false === extraHosts) {
-            let whalerNetwork = docker.getNetwork('whaler_nw');
-            yield whalerNetwork.connect.$call(whalerNetwork, {
-                'Container': container.id
-            });
+        let whalerNetwork = docker.getNetwork('whaler_nw');
+        yield whalerNetwork.connect.$call(whalerNetwork, {
+            'Container': container.id
+        });
 
-            let appNetwork = docker.getNetwork('whaler_nw.' + appName);
-            yield appNetwork.connect.$call(appNetwork, {
-                'Container': container.id
-            });
-        }
+        let appNetwork = docker.getNetwork('whaler_nw.' + appName);
+        yield appNetwork.connect.$call(appNetwork, {
+            'Container': container.id
+        });
 
         container.run = function* () {
 

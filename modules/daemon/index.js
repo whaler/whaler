@@ -7,7 +7,6 @@ var Transform = require('stream').Transform;
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
-module.exports.__daemon = listener;
 
 /**
  * @param whaler
@@ -129,33 +128,4 @@ function* initListeners(whaler) {
             });
         }
     });
-}
-
-/**
- * @param whaler
- * @param options
- */
-function listener(whaler, options) {
-    if ('events' == options['type']) {
-        const data = options['data'];
-        if ('die' == data['status'] && 'container' == data['Type']) {
-            whaler.$async(function* () {
-                const docker = whaler.get('docker');
-                const container = docker.getContainer(data['id']);
-                try {
-                    const info = yield container.inspect.$call(container);
-                    if (info['Config']['Labels'] || false) {
-                        const onDie = info['Config']['Labels']['whaler.on-die'] || null;
-                        if ('remove' == onDie) {
-                            yield container.remove.$call(container, {
-                                v: true,
-                                force: true
-                            });
-                        }
-                    }
-                } catch (e) {}
-
-            });
-        }
-    }
 }

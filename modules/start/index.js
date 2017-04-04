@@ -85,11 +85,6 @@ function exports(whaler) {
 
         const containers = {};
 
-        let extraHosts = false;
-        if (!(docker.modem.version >= 'v1.21')) {
-            extraHosts = yield getExtraHosts.$call(null, docker, appName);
-        }
-
         for (let name of services) {
             let container = docker.getContainer(name + '.' + appName);
 
@@ -150,26 +145,12 @@ function exports(whaler) {
 
                 info = yield container.inspect.$call(container);
 
-                let startOpts = {};
-                if (false !== extraHosts) {
-                    startOpts = info['HostConfig'];
-                    startOpts['ExtraHosts'] = extraHosts;
-                }
-
                 let wait = false;
                 if (info['Config']['Labels'] && info['Config']['Labels']['whaler.wait']) {
                     wait = str2time(info['Config']['Labels']['whaler.wait']);
                 }
 
-                // if (info['LogPath']) {
-                //     yield fs.truncate.$call(null, info['LogPath'], 0);
-                // }
-
-                var data = yield container.start.$call(container, startOpts);
-
-                if (false !== extraHosts) {
-                    injectIps.$call(null, docker, appName);
-                }
+                yield container.start.$call(container);
 
                 if (wait) {
                     let stream = null;
@@ -212,10 +193,6 @@ function exports(whaler) {
 
                 console.info('');
                 console.info('[%s] Container "%s.%s" started.', process.pid, name, appName);
-            }
-
-            if (false !== extraHosts) {
-                extraHosts.push(name + ':' + info['NetworkSettings']['IPAddress']);
             }
 
             containers[name] = container;
@@ -341,83 +318,4 @@ function processStdoutWrite(data) {
     }
 
     return null;
-}
-
-/**
- * @param docker
- * @param appName
- */
-function* injectIps(docker, appName) {
-    let containers;
-    try {
-        containers = yield docker.listContainers.$call(docker, {
-            all: false,
-            filters: JSON.stringify({
-                name: [
-                    docker.util.nameFilter(appName)
-                ]
-            })
-        });
-    } catch (e) {}
-
-    if (!containers) {
-        return;
-    }
-
-    const hosts = [];
-    const values = [];
-    const domains = [];
-
-    for (let data of containers) {
-        const parts = data['Names'][0].substr(1).split('.');
-        try {
-            const container = docker.getContainer(data['Id']);
-            const info = yield container.inspect.$call(container);
-            hosts.push(info['HostsPath']);
-            domains.push(parts[0]);
-            values.push(info['NetworkSettings']['IPAddress'] + '\t' + parts[0] + '\n');
-        } catch (e) {}
-    }
-
-    const re = new RegExp('([0-9\\.])+\\s+(' + domains.map((value) => {
-        return value.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    }).join('|') + ')\\n', 'g');
-
-    for (let hostsPath of hosts) {
-        fs.readFile(hostsPath, 'utf-8', (err, data) => {
-            if (!err) {
-                data = data.replace(re, '') + values.join('');
-                fs.writeFile(hostsPath, data, 'utf-8', (err) => {});
-            }
-        });
-    }
-}
-
-function* getExtraHosts(docker, appName) {
-    let containers;
-    try {
-        containers = yield docker.listContainers.$call(docker, {
-            all: false,
-            filters: JSON.stringify({
-                name: [
-                    docker.util.nameFilter(appName)
-                ]
-            })
-        });
-    } catch (e) {}
-
-    const extraHosts = [];
-
-    if (containers) {
-        for (let data of containers) {
-            const parts = data['Names'][0].substr(1).split('.');
-            try {
-                const container = docker.getContainer(data['Id']);
-                const info = yield container.inspect.$call(container);
-                extraHosts.push(parts[0] + ':' + info['NetworkSettings']['IPAddress']);
-            } catch (e) {}
-        }
-    }
-
-    return extraHosts;
 }
