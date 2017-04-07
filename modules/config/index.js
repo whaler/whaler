@@ -66,8 +66,15 @@ function* loadConfig(app, options) {
 
     } else {
         if (!path.isAbsolute(file)) {
-            new Error('Config path must be absolute.');
+            throw new Error('Config path must be absolute.');
         }
+
+        try {
+            yield fs.stat.$call(null, file);
+        } catch (e) {
+            throw new Error('Config file "' + file + '" not exists.');
+        }
+
         data = yield renderTemplate.$call(null, file, vars);
     }
 
@@ -115,6 +122,10 @@ function prepareConfig(config, env) {
         const scale = {};
         const services = config['services'];
         for (let key in services) {
+            if (-1 !== key.indexOf('.')) {
+                throw new Error('Service name "' + key + '" cann\'t contain "."');
+            }
+
             if (services[key]['extend']) {
                 services[key] = util.extend({}, services[services[key]['extend']], services[key]);
                 delete services[key]['extend'];

@@ -48,6 +48,10 @@ function exports(whaler) {
             }
         }
 
+        if (-1 !== options['name'].indexOf('.')) {
+            throw new Error('Application name "' + options['name'] + '" cann\'t contain "."');
+        }
+
         const app = yield storage.add.$call(storage, options['name'], {
             path: options['path'],
             env:  options['env'] || process.env.WHALER_ENV || 'dev',
