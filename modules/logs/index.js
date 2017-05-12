@@ -20,7 +20,9 @@ function exports(whaler) {
             stream = yield container.logs.$call(container, {
                 follow: true,
                 stdout: true,
-                stderr: true
+                stderr: true,
+                since: options['since'] || 0,
+                tail: options['tail'] || 'all'
             });
 
             if (info['Config']['Tty']) {
