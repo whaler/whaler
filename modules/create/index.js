@@ -46,24 +46,29 @@ function exports(whaler) {
 
         const vars = yield whaler.$emit('vars', {});
 
-        let appNetwork = null;
-        let whalerNetwork = null;
+        let whalerNetwork = docker.getNetwork('whaler_nw');
         try {
+            yield whalerNetwork.inspect.$call(whalerNetwork);
+        } catch (e) {
             whalerNetwork = yield docker.createNetwork.$call(docker, {
                 'Name': 'whaler_nw',
                 'CheckDuplicate': true
             });
-        } catch (e) {
-            whalerNetwork = docker.getNetwork('whaler_nw');
         }
 
+        let appNetwork = docker.getNetwork('whaler_nw.' + appName);
         try {
+            yield appNetwork.inspect.$call(appNetwork);
+        } catch (e) {
+            let nwConfig = {};
+            try {
+                nwConfig = JSON.parse(yield fs.readFile.$call(null, '/var/lib/whaler/nw.json', 'utf8'));
+            } catch (e) {}
             appNetwork = yield docker.createNetwork.$call(docker, {
                 'Name': 'whaler_nw.' + appName,
+                'Driver': nwConfig['driver'] || 'bridge',
                 'CheckDuplicate': true
             });
-        } catch (e) {
-            appNetwork = docker.getNetwork('whaler_nw.' + appName);
         }
 
         const keys = Object.keys(appConfig['data']['services']);
