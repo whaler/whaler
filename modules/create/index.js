@@ -11,6 +11,8 @@ module.exports.__cmd = require('./cmd');
 function exports(whaler) {
 
     whaler.on('create', function* (options) {
+        const whalerConfig = yield whaler.config.$call(whaler);
+
         let appName = options['ref'];
         let serviceName = null;
 
@@ -60,13 +62,11 @@ function exports(whaler) {
         try {
             yield appNetwork.inspect.$call(appNetwork);
         } catch (e) {
-            let nwConfig = {};
-            try {
-                nwConfig = JSON.parse(yield fs.readFile.$call(null, '/var/lib/whaler/nw.json', 'utf8'));
-            } catch (e) {}
+            const nwConfig = whalerConfig['network'] || {};
             appNetwork = yield docker.createNetwork.$call(docker, {
                 'Name': 'whaler_nw.' + appName,
                 'Driver': nwConfig['driver'] || 'bridge',
+                "Options": nwConfig['options'] || {},
                 'CheckDuplicate': true
             });
         }
@@ -149,6 +149,14 @@ function exports(whaler) {
                     'ExtraHosts': null
                 }
             };
+
+            let logging = config['logging'] || whalerConfig['log'] || null;
+            if (logging) {
+                createOpts['HostConfig']['LogConfig'] = {
+                    'Type': logging['driver'] || 'json-file',
+                    'Config': logging['options'] || {}
+                };
+            }
 
             let imageId = null;
             try {

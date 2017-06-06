@@ -9,6 +9,8 @@ var parseEnv = require('./lib/parse-env');
 
 module.exports = Whaler;
 
+let config = null;
+
 function Whaler() {
     this.path = __dirname;
 }
@@ -41,9 +43,31 @@ Whaler.prototype.get = function(id) {
 };
 
 /**
+ * @api
+ * @param callback
+ */
+Whaler.prototype.config = function(callback = (err, config) => null) {
+    if (config !== null) {
+        return callback(null, config);
+    }
+
+    fs.readFile('/etc/whaler/config.json', 'utf8', (err, data) => {
+        let _config = {};
+        if (!err) {
+            try {
+                _config = JSON.parse(data);
+            } catch (e) {
+                return callback(e);
+            }
+        }
+        callback(null, config = _config);
+    });
+};
+
+/**
  * Base method
  */
-Whaler.prototype.init = function(cb = (err) => null) {
+Whaler.prototype.init = function(callback = (err) => null) {
     // base
     mkdir('/etc/whaler');
     loadEnv('/etc/whaler/env');
@@ -74,7 +98,7 @@ Whaler.prototype.init = function(cb = (err) => null) {
     process.stdin.setEncoding('utf8');
     process.stdin.pause();
 
-    cb(null);
+    callback(null);
 };
 
 // PRIVATE
