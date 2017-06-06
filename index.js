@@ -47,17 +47,19 @@ Whaler.prototype.get = function(id) {
  * @param callback
  */
 Whaler.prototype.config = function(callback = (err, config) => null) {
+    const configFile = '/etc/whaler/config.json';
+
     if (config !== null) {
         return callback(null, config);
     }
 
-    fs.readFile('/etc/whaler/config.json', 'utf8', (err, data) => {
+    fs.readFile(configFile, 'utf8', (err, data) => {
         let _config = {};
         if (!err) {
             try {
                 _config = JSON.parse(data);
             } catch (e) {
-                return callback(e);
+                return callback(new Error('Unexpected JSON format in ' + configFile));
             }
         }
         callback(null, config = _config);
