@@ -351,6 +351,9 @@ function exports(whaler) {
                             if (volumeCfg['external']) {
                                 arr[0] = volumeCfg['external']['name'] || arr[0];
 
+                                let appVolume = docker.getVolume(arr[0]);
+                                yield appVolume.inspect.$call(appVolume);
+
                             } else {
                                 if (!/^[a-z0-9-]+$/.test(arr[0])) {
                                     throw new Error('Application volume name "' + arr[0] + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
