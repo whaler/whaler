@@ -68,9 +68,16 @@ describe('modules/config', () => {
         });
 
         const fsMock = {
+            stat: function (path, cb) {
+                if ('/app/whaler.yml' == path) {
+                    return cb(null, {});
+                }
+
+                cb(new Error('file "' + path + '" not found'));
+            },
             readFile: function (path, encoding, cb) {
                 if ('/app/whaler.yml' == path) {
-                    cb(null, [
+                    return cb(null, [
                         'app_name: ${APP_NAME}',
                         'app_path: ${APP_PATH}',
                         'undefined: ${UNDEFINED:=undefined}',
@@ -80,7 +87,7 @@ describe('modules/config', () => {
                     ].join("\n"));
                 }
                 if ('/app/.env' == path) {
-                    cb(null, [
+                    return cb(null, [
                         'UNUSED=file',
                         'FILE=file'
                     ].join("\n"));
@@ -129,9 +136,16 @@ describe('modules/config', () => {
         });
 
         const fsMock = {
+            stat: function (path, cb) {
+                if ('/app/whaler.yml' == path) {
+                    return cb(null, {});
+                }
+
+                cb(new Error('file "' + path + '" not found'));
+            },
             readFile: function (path, encoding, cb) {
                 if ('/app/whaler.yml' == path) {
-                    cb(null, [
+                    return cb(null, [
                         'x:',
                         '    foo: bar',
                         '    ~dev:',
@@ -192,39 +206,46 @@ describe('modules/config', () => {
         });
 
         const fsMock = {
+            stat: function (path, cb) {
+                if ('/app/empty.yml' == path) {
+                    return cb(null, {});
+                } else if ('/app/whaler.yml' == path) {
+                    return cb(null, {});
+                }
+
+                cb(new Error('file "' + path + '" not found'));
+            },
             readFile: function (path, encoding, cb) {
                 if ('/app/empty.yml' == path) {
-                    cb(null, '');
+                    return cb(null, '');
                 } else if ('/app/whaler.yml' == path) {
-                    if ('/app/whaler.yml' == path) {
-                        cb(null, [
-                            'services:',
-                            '    service-a:',
-                            '        wait: 1000',
-                            '        volumes:',
-                            '            /tmp:',
-                            '            /from-a: /to-a',
-                            '            ./cache: /cache',
-                            '        env:',
-                            '            RACK_ENV: development',
-                            '            SHOW: \'true\'',
-                            '            SESSION_SECRET:',
-                            '    service-b:',
-                            '        extend: service-a',
-                            '        volumes:',
-                            '            /from-b: /to-b',
-                            '    service-c:',
-                            '        wait: 1m',
-                            '        volumes:',
-                            '            - /from-c:/to-c',
-                            '        env:',
-                            '            - FOO=foo',
-                            '            - BAR=bar',
-                            '            - BAZ',
-                            '    service-d:',
-                            '        scale: 3'
-                        ].join("\n"));
-                    }
+                    return cb(null, [
+                        'services:',
+                        '    service-a:',
+                        '        wait: 1000',
+                        '        volumes:',
+                        '            /tmp:',
+                        '            /from-a: /to-a',
+                        '            ./cache: /cache',
+                        '        env:',
+                        '            RACK_ENV: development',
+                        '            SHOW: \'true\'',
+                        '            SESSION_SECRET:',
+                        '    service-b:',
+                        '        extend: service-a',
+                        '        volumes:',
+                        '            /from-b: /to-b',
+                        '    service-c:',
+                        '        wait: 1m',
+                        '        volumes:',
+                        '            - /from-c:/to-c',
+                        '        env:',
+                        '            - FOO=foo',
+                        '            - BAR=bar',
+                        '            - BAZ',
+                        '    service-d:',
+                        '        scale: 3'
+                    ].join("\n"));
                 }
 
                 cb(new Error('file "' + path + '" not found'));
