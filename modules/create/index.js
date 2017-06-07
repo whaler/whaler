@@ -373,7 +373,7 @@ function exports(whaler) {
                                     appVolume = yield docker.createVolume.$call(docker, {
                                         'Name': arr[0],
                                         'Driver': volumeCfg['driver'] || 'local',
-                                        'Options': volumeCfg['driver_opts'] || {},
+                                        'DriverOpts': volumeCfg['driver_opts'] || {},
                                         'Labels': volumeCfg['labels']
                                     });
                                 }
