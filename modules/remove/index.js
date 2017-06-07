@@ -108,6 +108,23 @@ function exports(whaler) {
                     yield deleteFolderRecursive.$call(null, '/var/lib/whaler/volumes/' + appName);
                 } catch (e) {}
 
+                // remove named volumes
+                const volumesList = yield docker.listVolumes.$call(docker, {
+                    filters: JSON.stringify({
+                        name: [
+                            '^whaler_vlm[\.]{1}' + appName + '[\.]{1}[a-z0-9\-]+$'
+                        ]
+                    })
+                });
+                if (volumesList['Volumes']) {
+                    for (let rmVolume of volumesList['Volumes']) {
+                        let appVolume = docker.getVolume(rmVolume['Name']);
+                        yield appVolume.remove.$call(appVolume, {
+                            force: true
+                        });
+                    }
+                }
+
                 yield storage.remove.$call(storage, appName);
 
                 console.warn('');

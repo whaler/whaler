@@ -16,8 +16,8 @@ function exports(whaler) {
         let appName = options['ref'];
         let serviceName = null;
 
-        if (options['init'] && -1 !== appName.indexOf('.')) {
-            throw new Error('Application name "' + appName + '" cann\'t contain "."');
+        if (options['init'] && !/^[a-z0-9-]+$/.test(appName)) {
+            throw new Error('Application name "' + appName + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
         }
 
         const parts = options['ref'].split('.');

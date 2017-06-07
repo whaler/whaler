@@ -66,12 +66,14 @@ function exports(whaler) {
             appNetwork = yield docker.createNetwork.$call(docker, {
                 'Name': 'whaler_nw.' + appName,
                 'Driver': nwConfig['driver'] || 'bridge',
-                "Options": nwConfig['options'] || {},
+                'Options': nwConfig['options'] || {},
                 'CheckDuplicate': true
             });
         }
 
         const keys = Object.keys(appConfig['data']['services']);
+        const volumesCfg = appConfig['data']['volumes'] || {};
+
         for (let name of services) {
             const config = appConfig['data']['services'][name];
 
@@ -292,28 +294,23 @@ function exports(whaler) {
             if (config['volumes_from']) {
                 let volumesFrom = [];
                 for (let name of config['volumes_from']) {
-                    let accessLevel = 'rw';
-                    let containerName = null;
-
-                    const arr = (name + ':' + accessLevel).split(':');
-
+                    const arr = name.split(':');
                     if ('container' === arr[0]) {
-                        if (arr[2] !== 'ro') {
-                            accessLevel = 'rw';
-                        }
-                        containerName = arr[1];
-
+                        arr.shift();
                     } else {
-                        if (arr[1] !== 'ro') {
-                            accessLevel = 'rw';
-                        }
-                        containerName = arr[0] + '.' + appName;
+                        arr[0] = arr[0] + '.' + appName;
                     }
 
-                    volumesFrom.push(containerName + ':' + accessLevel);
+                    // const len = arr.length;
+                    // const accessLevel = arr[len - 1];
+                    // if (2 == len && -1 === ['ro', 'rw', 'z', 'Z'].indexOf(accessLevel)) {
+                    //     arr.pop();
+                    // }
+
+                    volumesFrom.push(arr.join(':'));
 
                     if (volumes.length) {
-                        const container = docker.getContainer(containerName);
+                        const container = docker.getContainer(arr[0]);
                         const info = yield container.inspect.$call(container);
 
                         const removeVolumes = [];
@@ -333,14 +330,55 @@ function exports(whaler) {
             if (config['volumes']) {
                 for (let volume of config['volumes']) {
                     const arr = volume.split(':');
+
                     if (arr.length == 1) {
                         const index = volumes.indexOf(arr[0]);
                         if (-1 === index) {
                             volumes.push(arr[0]);
                         }
                     } else {
-                        if (!path.isAbsolute(arr[0])) {
-                            arr[0] = path.join(path.dirname(appConfig['file']), path.normalize(arr[0]));
+                        let accessLevel = null;
+                        if (3 == arr.length) {
+                            accessLevel = arr.pop();
+                            // if (-1 === ['ro', 'rw', 'z', 'Z'].indexOf(accessLevel)) {
+                            //     accessLevel = null;
+                            // }
+                        }
+
+                        if (arr[0] in volumesCfg) {
+                            let volumeCfg = volumesCfg[arr[0]] || {};
+
+                            if (volumeCfg['external']) {
+                                arr[0] = volumeCfg['external']['name'] || arr[0];
+
+                            } else {
+                                if (!/^[a-z0-9-]+$/.test(arr[0])) {
+                                    throw new Error('Application volume name "' + arr[0] + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
+                                }
+
+                                arr[0] = 'whaler_vlm.' + appName + '.' + arr[0];
+
+                                volumeCfg['labels'] = volumeCfg['labels'] || {};
+                                for (let l in volumeCfg['labels']) {
+                                    volumeCfg['labels'][l] = JSON.stringify(volumeCfg['labels'][l]);
+                                }
+
+                                let appVolume = docker.getVolume(arr[0]);
+                                try {
+                                    yield appVolume.inspect.$call(appVolume);
+                                } catch (e) {
+                                    appVolume = yield docker.createVolume.$call(docker, {
+                                        'Name': arr[0],
+                                        'Driver': volumeCfg['driver'] || 'local',
+                                        'Options': volumeCfg['driver_opts'] || {},
+                                        'Labels': volumeCfg['labels']
+                                    });
+                                }
+                            }
+                        } else {
+                            if (!path.isAbsolute(arr[0])) {
+                                arr[0] = path.join(path.dirname(appConfig['file']), path.normalize(arr[0]));
+                            }
                         }
 
                         if (volumes.length) {
@@ -348,6 +386,10 @@ function exports(whaler) {
                             if (-1 !== index) {
                                 volumes.splice(index, 1);
                             }
+                        }
+
+                        if (accessLevel) {
+                            arr.push(accessLevel);
                         }
 
                         createOpts['HostConfig']['Binds'].push(arr.join(':'));

@@ -48,8 +48,8 @@ function exports(whaler) {
             }
         }
 
-        if (-1 !== options['name'].indexOf('.')) {
-            throw new Error('Application name "' + options['name'] + '" cann\'t contain "."');
+        if (!/^[a-z0-9-]+$/.test(options['name'])) {
+            throw new Error('Application name "' + options['name'] + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
         }
 
         const app = yield storage.add.$call(storage, options['name'], {

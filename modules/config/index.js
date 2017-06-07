@@ -122,8 +122,8 @@ function prepareConfig(config, env) {
         const scale = {};
         const services = config['services'];
         for (let key in services) {
-            if (-1 !== key.indexOf('.')) {
-                throw new Error('Service name "' + key + '" cann\'t contain "."');
+            if (!/^[a-z0-9-]+$/.test(key)) {
+                throw new Error('Service name "' + key + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
             }
 
             if (services[key]['extend']) {
