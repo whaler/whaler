@@ -35,6 +35,12 @@ function cmd(whaler) {
                 setEnv: options.setEnv
             });
 
+            const yamlDumpOpts = {
+                indent: 4,
+                noRefs: false,
+                noCompatMode: true
+            };
+
             console.log('');
             if (options.update) {
                 console.info('[%s] Application "%s" config updated.', process.pid, name);
@@ -47,8 +53,8 @@ function cmd(whaler) {
                         file: options.file ? null : config.file
                     });
 
-                    let config1 = yaml.dump(_config.data, { indent: 2 }) + '\n';
-                    let config2 = yaml.dump(config.data, { indent: 2 }) + '\n';
+                    let config1 = yaml.dump(_config.data, yamlDumpOpts) + '\n';
+                    let config2 = yaml.dump(config.data, yamlDumpOpts) + '\n';
 
                     if (config1 !== config2) {
                         let diff;
@@ -74,7 +80,7 @@ function cmd(whaler) {
 
                 } else {
                     console.info(config.file, '\n');
-                    let data = yaml.dump(config.data, { indent: 2 });
+                    let data = yaml.dump(config.data, yamlDumpOpts);
                     console.log(data.trim());
                 }
             }
