@@ -154,8 +154,6 @@ function exports(whaler) {
                     wait = str2time(info['Config']['Labels']['whaler.wait']);
                 }
 
-                yield container.start.$call(container);
-
                 if (wait) {
                     let stream = null;
                     let revertResize = function () {};
@@ -170,8 +168,10 @@ function exports(whaler) {
                             stderr: true
                         });
                         revertResize = docker.util.resizeTTY(container);
+                        yield container.start.$call(container);
 
                     } else {
+                        yield container.start.$call(container);
                         stream = yield container.logs.$call(container, {
                             follow: true,
                             stdout: true,
@@ -191,6 +191,8 @@ function exports(whaler) {
 
                     revertPipe();
                     revertResize();
+                } else {
+                    yield container.start.$call(container);
                 }
 
                 info = yield container.inspect.$call(container);
@@ -275,13 +277,16 @@ function writeLogs(docker, stream, wait, tty, callback) {
 
             if (firstStr) {
                 firstStr = false;
-                if (!('\r\n' === data || '\n' === data)) {
-                    console.log('');
+                if (!isWhalerWait(data)) {
+                    if (!('\r\n' === data || '\n' === data)) {
+                        console.log('');
+                    }
                 }
             }
 
             const sleepTime = processStdoutWrite(data);
             if (null !== sleepTime) {
+                firstStr = true;
                 clearTimeout(timeoutId);
                 timeoutId = setTimeout(() => {
                     callback(null);
@@ -302,10 +307,22 @@ function writeLogs(docker, stream, wait, tty, callback) {
 
 /**
  * @param data
+ * @returns {boolean}
+ */
+function isWhalerWait(data) {
+    if (-1 !== data.indexOf('@whaler ready in') || -1 !== data.indexOf('@whaler wait')) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * @param data
  * @returns {*}
  */
 function processStdoutWrite(data) {
-    if (-1 !== data.indexOf('@whaler ready in') || -1 !== data.indexOf('@whaler wait')) {
+    if (isWhalerWait(data)) {
         const sleepTime = str2time(data);
         console.info('');
         console.info('[%s] Waiting %ss to make sure container is started.', process.pid, sleepTime / 1000);
