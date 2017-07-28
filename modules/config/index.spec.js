@@ -223,6 +223,8 @@ describe('modules/config', () => {
                         'services:',
                         '    service-a:',
                         '        wait: 1000',
+                        '        ports:',
+                        '            - 3000:3000',
                         '        volumes:',
                         '            /tmp:',
                         '            /from-a: /to-a',
@@ -244,7 +246,11 @@ describe('modules/config', () => {
                         '            - BAR=bar',
                         '            - BAZ',
                         '    service-d:',
-                        '        scale: 3'
+                        '        scale: 3',
+                        '    service-e:',
+                        '        extend: service-a&wait',
+                        '    service-f:',
+                        '        extend: service-a!wait'
                     ].join("\n"));
                 }
 
@@ -283,6 +289,7 @@ describe('modules/config', () => {
                     '"services":{',
                         '"service-a":{',
                             '"wait":"1000s",',
+                            '"ports":["3000:3000"],',
                             '"volumes":["/tmp","/from-a:/to-a","./cache:/cache"],',
                             '"env":["RACK_ENV=development","SHOW=true","SESSION_SECRET"]',
                         '},',
@@ -298,11 +305,19 @@ describe('modules/config', () => {
                         '},',
                         '"service-d1":{},',
                         '"service-d2":{},',
-                        '"service-d3":{}',
+                        '"service-d3":{},',
+                        '"service-e":{',
+                            '"wait":"1000s"',
+                        '},',
+                        '"service-f":{',
+                            '"volumes":["/tmp","/from-a:/to-a","./cache:/cache"],',
+                            '"env":["RACK_ENV=development","SHOW=true","SESSION_SECRET"]',
+                        '}',
                     '}',
                 '}',
             '}'
         ].join('');
+
         assert.equal(JSON.stringify(config), expected);
 
         revert();

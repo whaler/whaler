@@ -127,7 +127,51 @@ function prepareConfig(config, env) {
             }
 
             if (services[key]['extend']) {
-                services[key] = util.extend({}, services[services[key]['extend']], services[key]);
+                if ('string' === typeof services[key]['extend']) {
+                    let service = services[key]['extend'];
+                    let include = undefined;
+                    let exclude = undefined;
+                    if (service.indexOf('&') !== -1) {
+                        const parts = service.split('&');
+                        service = parts[0];
+                        include = parts[1].split(',');
+                    } else if (service.indexOf('!') !== -1) {
+                        const parts = service.split('!');
+                        service = parts[0];
+                        exclude = parts[1].split(',');
+                    }
+
+                    services[key]['extend'] = {
+                        service: service,
+                        include: include,
+                        exclude: exclude
+                    };
+                }
+
+                let data = {};
+                if (services[key]['extend']['include']) {
+                    for (let include of services[key]['extend']['include']) {
+                        if (services[services[key]['extend']['service']].hasOwnProperty(include)) {
+                            data[include] = services[services[key]['extend']['service']][include];
+                        }
+                    }
+                } else {
+                    data = util.extend({}, services[services[key]['extend']['service']]);
+                    if (services[key]['extend']['exclude']) {
+                        for (let exclude of services[key]['extend']['exclude']) {
+                            if (data.hasOwnProperty(exclude)) {
+                                delete data[exclude];
+                            }
+                        }
+                    }
+                }
+
+                if (data.hasOwnProperty('ports')) {
+                    delete data['ports'];
+                }
+
+                services[key] = util.extend({}, data, services[key]);
+
                 delete services[key]['extend'];
             }
 
