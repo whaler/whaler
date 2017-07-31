@@ -2,7 +2,7 @@
 
 var fs = require('fs');
 var tls = require('tls');
-var pty = require('pty.js');
+var pty = require('node-pty');
 var Transform = require('stream').Transform;
 
 module.exports = exports;
@@ -47,6 +47,9 @@ function exports(whaler) {
 
                     let timerId = null;
                     const xterm = pty.spawn(cmd, data['argv'], opt);
+                    xterm.unpipe = function unpipe (dest) {
+                        return xterm.socket.unpipe(dest);
+                    };
 
                     const resize = new Transform({
                         decodeStrings: false
@@ -58,8 +61,9 @@ function exports(whaler) {
                                 clearTimeout(timerId);
                             }
                             timerId = setTimeout(() => {
-                                xterm.resize(size.cols - 1, size.rows - 1);
-                                xterm.redraw();
+                                try {
+                                    xterm.resize(size.cols, size.rows);
+                                } catch (e) {}
                             }, 30);
 
                             done(null);
@@ -68,10 +72,17 @@ function exports(whaler) {
                         }
                     };
 
-                    socket.pipe(resize).pipe(xterm);
-                    xterm.pipe(socket);
-                    xterm.on('exit', (code) => {
+                    const exit = (code) => {
                         socket.end();
+                    };
+
+                    xterm.on('exit', exit);
+                    socket.pipe(resize).pipe(xterm).pipe(socket);
+
+                    socket.on('close', () => {
+                        socket.unpipe(resize).unpipe(xterm).unpipe(socket);
+                        xterm.removeListener('exit', exit);
+                        xterm.kill();
                     });
                 });
             }
