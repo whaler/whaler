@@ -72,7 +72,7 @@ function client(host, argv) {
             name: path.basename(process.cwd()),
             argv: argv,
             env: {
-                WHALER_FRONTEND: ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY),
+                WHALER_FRONTEND: ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY ? 'interactive' : 'noninteractive')
             },
             xterm: {
                 cols: process.stderr.columns,
