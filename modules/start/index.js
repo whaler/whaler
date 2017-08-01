@@ -176,7 +176,7 @@ function exports(whaler) {
                             follow: true,
                             stdout: true,
                             stderr: true,
-                            since: Math.floor(new Date().getTime() / 1000) - 1
+                            since: Math.floor(new Date().getTime() / 1000)
                         });
                     }
 
@@ -300,7 +300,7 @@ function writeLogs(docker, stream, wait, tty, callback) {
         stream.on('data', stdout.write);
 
     } else {
-        docker.modem.demuxStream(stream, stdout, process.stderr);
+        docker.modem.demuxStream(stream, stdout, stdout);
     }
 }
 
