@@ -153,9 +153,10 @@ function exports(whaler) {
                 }
             };
 
-            if (config['restart'] && -1 === ['always', 'unless-stopped', 'on-failure'].indexOf(config['restart'])) {
+            if (config['restart']) {
+                const availableRestartPolicy = ['always', 'unless-stopped', 'on-failure'];
                 createOpts['HostConfig']['RestartPolicy'] = {
-                    'Name': config['restart']
+                    'Name': -1 !== availableRestartPolicy.indexOf(config['restart']) ? config['restart'] : ''
                 };
                 if ('on-failure' == config['restart']) {
                     createOpts['HostConfig']['RestartPolicy']['MaximumRetryCount'] = config['restart_max_retry'] || 1;
