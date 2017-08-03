@@ -24,21 +24,36 @@ function list(whaler) {
     whaler.get('cli')
         .command(pkg.name)
         .description('Show installed plugins')
+        .option('-f, --format <FORMAT>', 'The output format (txt or json) [default: "txt"]')
         .action(function* (options) {
             const plugins = whaler.get('plugins');
             const response = yield whaler.$emit('plugins');
 
-            const table = whaler.get('cli-table')({
-                head: [ 'Plugin name', 'Version' ]
-            });
+            if ('json' == options.format) {
+                this.ignoreEndLine(true);
+                const json = [];
+                for (let name of response) {
+                    const pkg = plugins.require(name + '/package.json');
+                    json.push({
+                        name: name,
+                        version: pkg['version']
+                    });
+                }
+                console.log(JSON.stringify(json, null, 2));
+            } else {
+                const table = whaler.get('cli-table')({
+                    head: [ 'Plugin name', 'Version' ]
+                });
 
-            for (let name of response) {
-                const pkg = plugins.require(name + '/package.json');
-                table.push([ name, pkg['version'] ]);
+                for (let name of response) {
+                    const pkg = plugins.require(name + '/package.json');
+                    table.push([ name, pkg['version'] ]);
+                }
+
+                console.log('');
+                console.log(table.render());
             }
 
-            console.log('');
-            console.log(table.render());
         });
 
 }

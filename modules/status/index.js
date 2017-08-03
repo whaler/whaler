@@ -1,7 +1,5 @@
 'use strict';
 
-var colors = require('colors/safe');
-
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
 
@@ -15,7 +13,6 @@ function exports(whaler) {
         const storage = whaler.get('apps');
         const app = yield storage.get.$call(storage, options['name']);
 
-        const response = [];
         const services = Object.keys(app.config['data']['services']);
 
         let containers = yield docker.listContainers.$call(docker, {
@@ -53,17 +50,12 @@ function exports(whaler) {
             services.push(data.name);
         }
 
-        let message = null;
+        const response = [];
         for (let name of services) {
             const container = docker.getContainer(name + '.' + options['name']);
 
-            let ip = '-';
+            let ip = null;
             let status = 'NOT CREATED';
-            const color = app.config['data']['services'][name] ? null : 'red';
-
-            if (color && !message) {
-                message = colors[color]('*') + ' Volatile container, will be removed on app rebuild.';
-            }
 
             try {
                 const info = yield container.inspect.$call(container);
@@ -75,18 +67,15 @@ function exports(whaler) {
                 }
             } catch (e) {}
 
-            const appName = name + '.' + options['name'];
-            response.push([
-                color ? colors[color]('*') + ' ' + appName : appName,
-                status,
-                ip
-            ]);
+            response.push({
+                name: name,
+                status: status,
+                ip: ip,
+                volatile: !app.config['data']['services'][name]
+            });
         }
 
-        return {
-            table: response,
-            message: message,
-        };
+        return response;
     });
 
 }

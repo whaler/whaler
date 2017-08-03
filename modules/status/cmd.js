@@ -2,6 +2,7 @@
 
 var pkg = require('./package.json');
 var console = require('x-console');
+var colors = require('colors/safe');
 
 module.exports = cmd;
 
@@ -15,6 +16,7 @@ function cmd(whaler) {
         .description(pkg.description, {
             name: 'Application name'
         })
+        .option('-f, --format <FORMAT>', 'The output format (txt or json) [default: "txt"]')
         .action(function* (name, options) {
             name = this.util.prepare('name', name);
 
@@ -22,16 +24,38 @@ function cmd(whaler) {
                 name: name
             });
 
-            const table = whaler.get('cli-table')({
-                head: [ 'Container name', 'Status', 'IP' ]
-            });
+            if ('json' == options.format) {
+                this.ignoreEndLine(true);
+                console.log(JSON.stringify(response, null, 2));
+            } else {
+                const table = whaler.get('cli-table')({
+                    head: [ 'Container name', 'Status', 'IP' ]
+                });
 
-            console.log('');
-            console.log(table.render(response.table));
+                const data = [];
+                let message = false;
+                for (let service of response) {
+                    const color = service.volatile ? 'red' : null;
 
-            if (response.message) {
+                    if (color && !message) {
+                        message = true;
+                    }
+
+                    const appName = name + '.' + service.name;
+                    data.push([
+                        color ? colors[color]('*') + ' ' + appName : appName,
+                        service.status,
+                        service.ip || '-'
+                    ]);
+                }
+
                 console.log('');
-                console.log('  ' + response.message);
+                console.log(table.render(data));
+
+                if (message) {
+                    console.log('');
+                    console.log('  ' + colors[color]('*') + ' Volatile container, will be removed on app rebuild.');
+                }
             }
 
         });

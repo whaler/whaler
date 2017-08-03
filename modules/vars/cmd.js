@@ -24,23 +24,30 @@ function list(whaler) {
     whaler.get('cli')
         .command(pkg.name)
         .description('Show vars')
+        .option('-f, --format <FORMAT>', 'The output format (txt or json) [default: "txt"]')
         .action(function* (options) {
             const vars = yield whaler.$emit('vars');
 
-            const table = whaler.get('cli-table')({
-                head: [ 'Name', 'Value' ]
-            });
+            if ('json' == options.format) {
+                this.ignoreEndLine(true);
+                console.log(JSON.stringify(vars, null, 2));
+            } else {
+                const table = whaler.get('cli-table')({
+                    head: [ 'Name', 'Value' ]
+                });
 
-            for (let key in vars) {
-                let value = vars[key];
-                if (!value) {
-                    value = '';
+                for (let key in vars) {
+                    let value = vars[key];
+                    if (!value) {
+                        value = '';
+                    }
+                    table.push([ key, value ]);
                 }
-                table.push([ key, value ]);
+
+                console.log('');
+                console.log(table.render());
             }
 
-            console.log('');
-            console.log(table.render());
         });
 
 }
