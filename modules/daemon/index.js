@@ -48,7 +48,7 @@ function exports(whaler) {
                     let timerId = null;
                     const xterm = pty.spawn(cmd, data['argv'], opt);
                     xterm.unpipe = function unpipe (dest) {
-                        return xterm.socket.unpipe(dest);
+                        return this.socket.unpipe(dest);
                     };
 
                     const resize = new Transform({
