@@ -322,7 +322,7 @@ function isWhalerWait(data) {
  */
 function processStdoutWrite(data) {
     if (isWhalerWait(data)) {
-        const sleepTime = str2time(data);
+        const sleepTime = str2time(data.split('@whaler')[1].split('\n')[0].trim());
         console.info('');
         console.info('[%s] Waiting %ss to make sure container is started.', process.pid, sleepTime / 1000);
 
