@@ -154,12 +154,18 @@ function exports(whaler) {
             };
 
             if (config['restart']) {
+                if ('string' === typeof config['restart']) {
+                    config['restart'] = {
+                        name: config['restart'],
+                        max_retry: 0
+                    };
+                }
                 const availableRestartPolicy = ['always', 'unless-stopped', 'on-failure'];
                 createOpts['HostConfig']['RestartPolicy'] = {
-                    'Name': -1 !== availableRestartPolicy.indexOf(config['restart']) ? config['restart'] : ''
+                    'Name': -1 !== availableRestartPolicy.indexOf(config['restart']['name']) ? config['restart']['name'] : ''
                 };
-                if ('on-failure' == config['restart']) {
-                    createOpts['HostConfig']['RestartPolicy']['MaximumRetryCount'] = config['restart_max_retry'] || 1;
+                if ('on-failure' == config['restart']['name']) {
+                    createOpts['HostConfig']['RestartPolicy']['MaximumRetryCount'] = config['restart']['max_retry'] || 0;
                 }
             }
 
