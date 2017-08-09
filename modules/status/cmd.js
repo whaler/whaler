@@ -41,7 +41,7 @@ function cmd(whaler) {
                         message = true;
                     }
 
-                    const appName = name + '.' + service.name;
+                    const appName = service.name + '.' + name;
                     data.push([
                         color ? colors[color]('*') + ' ' + appName : appName,
                         service.status,
