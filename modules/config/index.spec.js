@@ -156,7 +156,10 @@ describe('modules/config', () => {
                         '    y:',
                         '        foo: baz',
                         '    z:',
-                        '        foo: qux'
+                        '        foo: qux',
+                        '~extra:',
+                        '    z:',
+                        '        foo: extra'
                     ].join("\n"));
                 }
 
@@ -173,7 +176,6 @@ describe('modules/config', () => {
             setEnv: 'dev',
             update: true
         });
-
         expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"y":{"foo":"bar"},"services":{}}}';
         assert.equal(JSON.stringify(config), expected);
 
@@ -191,6 +193,30 @@ describe('modules/config', () => {
             update: true
         });
         expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"y":{"foo":"bar"},"services":{}}}';
+        assert.equal(JSON.stringify(config), expected);
+
+        config = yield whaler.$emit('config', {
+            name: appName,
+            setEnv: 'dev,extra',
+            update: true
+        });
+        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"y":{"foo":"bar"},"z":{"foo":"extra"},"services":{}}}';
+        assert.equal(JSON.stringify(config), expected);
+
+        config = yield whaler.$emit('config', {
+            name: appName,
+            setEnv: 'prod,extra',
+            update: true
+        });
+        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"bar"},"y":{"foo":"baz"},"z":{"foo":"extra"},"services":{}}}';
+        assert.equal(JSON.stringify(config), expected);
+
+        config = yield whaler.$emit('config', {
+            name: appName,
+            setEnv: 'test,extra',
+            update: true
+        });
+        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"y":{"foo":"bar"},"z":{"foo":"extra"},"services":{}}}';
         assert.equal(JSON.stringify(config), expected);
 
         revert();

@@ -241,17 +241,20 @@ function prepareConfig(config, env) {
  */
 function prepareConfigEnv(config, env) {
     if ('object' === typeof config && null !== config && Object.keys(config).length) {
+        env = env.split(',');
         const keys = Object.keys(config);
         for (let key of keys) {
             if ('~' == key[0]) {
                 const parts = key.split('~')[1].split(',');
-                if (parts.includes(env)) {
-                    config = util.extend({}, config, config[key]);
+                for (let e of env) {
+                    if (parts.includes(e)) {
+                        config = util.extend({}, config, config[key]);
+                    }
                 }
                 delete config[key];
-                config = prepareConfigEnv(config, env);
+                config = prepareConfigEnv(config, env.join(','));
             } else {
-                config[key] = prepareConfigEnv(config[key], env);
+                config[key] = prepareConfigEnv(config[key], env.join(','));
             }
         }
     }
