@@ -244,7 +244,8 @@ function prepareConfigEnv(config, env) {
         const keys = Object.keys(config);
         for (let key of keys) {
             if ('~' == key[0]) {
-                if ('~' + env == key) {
+                const parts = key.split('~')[1].split(',');
+                if (parts.includes(env)) {
                     config = util.extend({}, config, config[key]);
                 }
                 delete config[key];

@@ -148,7 +148,7 @@ describe('modules/config', () => {
                     return cb(null, [
                         'x:',
                         '    foo: bar',
-                        '    ~dev:',
+                        '    ~dev,test:',
                         '        foo: baz',
                         'y:',
                         '    foo: bar',
@@ -190,7 +190,7 @@ describe('modules/config', () => {
             setEnv: 'test',
             update: true
         });
-        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"bar"},"y":{"foo":"bar"},"services":{}}}';
+        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"y":{"foo":"bar"},"services":{}}}';
         assert.equal(JSON.stringify(config), expected);
 
         revert();
