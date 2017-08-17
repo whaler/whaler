@@ -184,6 +184,11 @@ function exports(whaler) {
                 imageId = info['Id'];
             } catch (e) {}
 
+            let pull = true;
+            if ('object' === typeof config['build'] && config['build'].hasOwnProperty('pull')) {
+                pull = config['build']['pull'];
+            }
+
             if (config['dockerfile']) {
                 let file = null;
 
@@ -199,7 +204,7 @@ function exports(whaler) {
                 });
 
                 const output = yield docker.followBuildImage.$call(docker, file, {
-                    pull: true,
+                    pull: pull,
                     t: createOpts['Image']
                 });
 
@@ -247,7 +252,7 @@ function exports(whaler) {
                 }
 
                 const output = yield docker.followBuildImage.$call(docker, file, {
-                    pull: true,
+                    pull: pull,
                     t: createOpts['Image'],
                     dockerfile: dockerfile
                 });
