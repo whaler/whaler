@@ -278,6 +278,16 @@ function exports(whaler) {
             }
 
             if (config['entrypoint']) {
+                if (config['entrypoint'].indexOf('\n') !== -1) {
+                    const dir = '/var/lib/whaler/volumes/' + appName + '/' + name;
+                    const entrypoint = dir + '/entrypoint';
+
+                    yield mkdirp.$call(null, dir);
+                    yield fs.writeFile.$call(null, entrypoint, config['entrypoint'], { mode: '755' });
+
+                    createOpts['HostConfig']['Binds'].push(entrypoint +':/usr/bin/@entrypoint');
+                    config['entrypoint'] = '/usr/bin/@entrypoint';
+                }
                 createOpts['Entrypoint'] = config['entrypoint'];
             }
 
