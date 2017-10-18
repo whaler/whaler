@@ -14,6 +14,11 @@ module.exports.__cmd = require('./cmd');
 function exports(whaler) {
 
     whaler.on('daemon', function* (options) {
+        let crl = undefined;
+        try {
+            crl = yield fs.readFile.$call(null, '/etc/whaler/ssl/ca.crl')
+        } catch (e) {}
+
         const dir = options['dir'];
         const cmd = whaler.path + '/bin/whaler';
         const opts = {
@@ -22,6 +27,7 @@ function exports(whaler) {
             ca: [
                 yield fs.readFile.$call(null, '/etc/whaler/ssl/ca.crt')
             ],
+            crl: crl,
             rejectUnauthorized: true,
             requestCert: true
         };
