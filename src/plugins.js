@@ -36,5 +36,7 @@ Manager.prototype.info = function(name, callback) {
 };
 
 module.exports = new Manager('whaler-plugin', {
-    prefix: '/var/lib/whaler/plugins'
+    'loglevel': 'error',
+    'package-lock': false,
+    'prefix': '/var/lib/whaler/plugins'
 });

@@ -69,6 +69,8 @@ function install(whaler) {
             name: 'Plugin name or path'
         })
         .action(function* (name, options) {
+            console.log('');
+
             const response = yield whaler.$emit('plugins:install', {
                 name: name
             });
@@ -77,7 +79,6 @@ function install(whaler) {
                 throw new Error('Can\'t install plugin "' + name + '".');
             }
 
-            console.log('');
             console.info('[%s] Plugin %s installed.', process.pid, response['name']);
         });
 
