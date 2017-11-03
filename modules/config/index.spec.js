@@ -80,6 +80,7 @@ describe('modules/config', () => {
                     return cb(null, [
                         'app_name: ${APP_NAME}',
                         'app_path: ${APP_PATH}',
+                        'app_env: ${APP_ENV}',
                         'undefined: ${UNDEFINED:=undefined}',
                         'global: ${GLOBAL:=undefined}',
                         'file: ${FILE:=undefined}',
@@ -113,6 +114,7 @@ describe('modules/config', () => {
                 '"data":{',
                     '"app_name":"' + appName + '",',
                     '"app_path":"/app",',
+                    '"app_env":"dev",',
                     '"undefined":"undefined",',
                     '"global":"global",',
                     '"file":"file",',

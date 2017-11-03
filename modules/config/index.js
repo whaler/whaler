@@ -84,7 +84,7 @@ function* loadConfig(app, options) {
 
     return {
         file: file,
-        data: prepareConfig(data, app.env),
+        data: prepareConfig(data, app.env)
     };
 }
 
@@ -106,6 +106,7 @@ function* prepareVars(app, options) {
 
     vars['APP_NAME'] = options['name'];
     vars['APP_PATH'] = app.path;
+    vars['APP_ENV'] = app.env;
 
     return vars;
 }
