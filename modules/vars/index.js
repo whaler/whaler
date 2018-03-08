@@ -6,21 +6,21 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('vars', function* () {
-        const vars = whaler.get('vars');
-        return yield vars.all.$call(vars);
+    whaler.on('vars', async ctx => {
+        const { default: vars } = await whaler.fetch('vars');
+        ctx.result = await vars.all();
     });
 
-    whaler.on('vars:set', function* (options) {
-        const vars = whaler.get('vars');
-        return yield vars.set.$call(vars, options['name'], options['value']);
+    whaler.on('vars:set', async ctx => {
+        const { default: vars } = await whaler.fetch('vars');
+        ctx.result =  await vars.set(ctx.options['name'], ctx.options['value']);
     });
 
-    whaler.on('vars:unset', function* (options) {
-        const vars = whaler.get('vars');
-        return yield vars.unset.$call(vars, options['name']);
+    whaler.on('vars:unset', async ctx => {
+        const { default: vars } = await whaler.fetch('vars');
+        ctx.result = await vars.unset(ctx.options['name']);
     });
 
 }

@@ -3,33 +3,20 @@
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
 
-/**
- * @param whaler
- */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('list', function* () {
-        const docker = whaler.get('docker');
-        const storage = whaler.get('apps');
-        const apps = yield storage.all.$call(storage);
+    whaler.on('list', async ctx => {
+        const { default: storage } = await whaler.fetch('apps');
+        const apps = await storage.all();
 
-        const response = [];
-        for (let appName in apps) {
-            const app = apps[appName];
-
-            const services = yield whaler.$emit('status', {
-                name: appName
-            });
-
-            response.push({
-                name: appName,
-                env: app.env,
-                path: app.path,
-                services: services
-            });
+        const result = [];
+        for (let name in apps) {
+            const { env, path } = apps[name];
+            const services = await whaler.emit('status', { name, app: apps[name] });
+            result.push({ name, env, path, services });
         }
 
-        return response;
+        ctx.result = result;
     });
 
 }

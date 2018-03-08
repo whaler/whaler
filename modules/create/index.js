@@ -1,42 +1,45 @@
 'use strict';
 
-var fs = require('fs');
-var path = require('path');
-var mkdirp = require('mkdirp');
-var console = require('x-console');
+const fs = require('fs/promises');
+const path = require('path');
+const util = require('util');
+const mkdirp = util.promisify(require('mkdirp'));
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
 
-function exports(whaler) {
+/**
+ * @param whaler
+ */
+async function exports (whaler) {
 
-    whaler.on('create', function* (options) {
-        const whalerConfig = yield whaler.config.$call(whaler);
+    whaler.on('create', async ctx => {
+        const whalerConfig = await whaler.config();
 
-        let appName = options['ref'];
+        let appName = ctx.options['ref'];
         let serviceName = null;
 
-        const parts = options['ref'].split('.');
+        const parts = ctx.options['ref'].split('.');
         if (2 == parts.length) {
             appName = parts[1];
             serviceName = parts[0];
         }
 
-        const docker = whaler.get('docker');
-        const storage = whaler.get('apps');
-        const app = yield storage.get.$call(storage, appName);
+        const { default: docker } = await whaler.fetch('docker');
+        const { default: storage } = await whaler.fetch('apps');
+        const app = await storage.get(appName);
 
         let appConfig = app.config;
-        if (options['config']) {
-            appConfig = yield whaler.$emit('config', {
+        if (ctx.options['config']) {
+            appConfig = await whaler.emit('config', {
                 name: appName,
-                file: options['config']
+                file: ctx.options['config']
             });
         }
 
         if (serviceName) {
             if (!appConfig['data']['services'][serviceName]) {
-                throw new Error('Config for "' + options['ref'] + '" not found.');
+                throw new Error('Config for "' + ctx.options['ref'] + '" not found.');
             }
         }
 
@@ -46,13 +49,13 @@ function exports(whaler) {
             services = [serviceName];
         }
 
-        const vars = yield whaler.$emit('vars', {});
+        const vars = await whaler.emit('vars', {});
 
         let whalerNetwork = docker.getNetwork('whaler_nw');
         try {
-            yield whalerNetwork.inspect.$call(whalerNetwork);
+            await whalerNetwork.inspect();
         } catch (e) {
-            whalerNetwork = yield docker.createNetwork.$call(docker, {
+            whalerNetwork = await docker.createNetwork({
                 'Name': 'whaler_nw',
                 'CheckDuplicate': true
             });
@@ -60,10 +63,10 @@ function exports(whaler) {
 
         let appNetwork = docker.getNetwork('whaler_nw.' + appName);
         try {
-            yield appNetwork.inspect.$call(appNetwork);
+            await appNetwork.inspect();
         } catch (e) {
             const nwConfig = whalerConfig['network'] || {};
-            appNetwork = yield docker.createNetwork.$call(docker, {
+            appNetwork = await docker.createNetwork({
                 'Name': 'whaler_nw.' + appName,
                 'Driver': nwConfig['driver'] || 'bridge',
                 'Options': nwConfig['options'] || {},
@@ -77,8 +80,7 @@ function exports(whaler) {
         for (let name of services) {
             const config = appConfig['data']['services'][name];
 
-            console.info('');
-            console.info('[%s] Creating "%s.%s" container.', process.pid, name, appName);
+            whaler.info('Creating "%s.%s" container.', name, appName);
 
             config['env'] = config['env'] || [];
             config['env'].push('WHALER_APP=' + appName);
@@ -108,7 +110,7 @@ function exports(whaler) {
             const index = keys.indexOf(name);
             config['labels']['whaler.position'] = JSON.stringify({
                 after: keys[index - 1] || null,
-                before: keys[index + 1] || null,
+                before: keys[index + 1] || null
             });
 
             let waitMode = 'noninteractive';
@@ -180,7 +182,7 @@ function exports(whaler) {
             let imageId = null;
             try {
                 const image = docker.getImage(createOpts['Image']);
-                const info = yield image.inspect.$call(image);
+                const info = await image.inspect();
                 imageId = info['Id'];
             } catch (e) {}
 
@@ -198,12 +200,12 @@ function exports(whaler) {
                 } else {
                     context = null;
                 }
-                file = yield docker.createTarPack.$call(docker, {
+                file = await docker.createTarPack({
                     context: context,
                     dockerfile: config['dockerfile']
                 });
 
-                const output = yield docker.followBuildImage.$call(docker, file, {
+                await docker.followBuildImage(file, {
                     pull: pull,
                     t: createOpts['Image']
                 });
@@ -216,7 +218,7 @@ function exports(whaler) {
                     if (build && !path.isAbsolute(build)) {
                         build = path.join(path.dirname(appConfig['file']), path.normalize(build));
                     }
-                    file = yield docker.createTarPack.$call(docker, build);
+                    file = await docker.createTarPack(build);
 
                 } else {
                     let context = null;
@@ -246,12 +248,12 @@ function exports(whaler) {
                         }
                     }
 
-                    file = yield docker.createTarPack.$call(docker, {
+                    file = await docker.createTarPack({
                         context: context
                     });
                 }
 
-                const output = yield docker.followBuildImage.$call(docker, file, {
+                await docker.followBuildImage(file, {
                     pull: pull,
                     t: createOpts['Image'],
                     dockerfile: dockerfile
@@ -259,17 +261,17 @@ function exports(whaler) {
 
             } else {
                 try {
-                    yield docker.followPull.$call(docker, createOpts['Image']);
+                    await docker.followPull(createOpts['Image']);
                 } catch (e) {}
             }
 
             const image = docker.getImage(createOpts['Image']);
-            const info = yield image.inspect.$call(image);
+            const info = await image.inspect();
 
             if (imageId && imageId != info['Id']) {
                 try {
                     const image = docker.getImage(imageId);
-                    yield image.remove.$call(image);
+                    await image.remove();
                 } catch (e) {}
             }
 
@@ -282,8 +284,8 @@ function exports(whaler) {
                     const dir = '/var/lib/whaler/volumes/' + appName + '/' + name;
                     const entrypoint = dir + '/entrypoint';
 
-                    yield mkdirp.$call(null, dir);
-                    yield fs.writeFile.$call(null, entrypoint, config['entrypoint'], { mode: '755' });
+                    await mkdirp(dir);
+                    await fs.writeFile(entrypoint, config['entrypoint'], { mode: '755' });
 
                     createOpts['HostConfig']['Binds'].push(entrypoint +':/usr/bin/@entrypoint');
                     config['entrypoint'] = '/usr/bin/@entrypoint';
@@ -297,8 +299,8 @@ function exports(whaler) {
                         const dir = '/var/lib/whaler/volumes/' + appName + '/' + name;
                         const cmd = dir + '/cmd';
 
-                        yield mkdirp.$call(null, dir);
-                        yield fs.writeFile.$call(null, cmd, config['cmd'], { mode: '755' });
+                        await mkdirp(dir);
+                        await fs.writeFile(cmd, config['cmd'], { mode: '755' });
 
                         createOpts['HostConfig']['Binds'].push(cmd +':/usr/bin/@cmd');
                         config['cmd'] = '/usr/bin/@cmd';
@@ -343,7 +345,7 @@ function exports(whaler) {
 
                     if (volumes.length) {
                         const container = docker.getContainer(arr[0]);
-                        const info = yield container.inspect.$call(container);
+                        const info = await container.inspect();
 
                         const removeVolumes = [];
                         if (info['Mounts'] && info['Mounts'].length) {
@@ -384,7 +386,7 @@ function exports(whaler) {
                                 arr[0] = volumeCfg['external']['name'] || arr[0];
 
                                 let appVolume = docker.getVolume(arr[0]);
-                                yield appVolume.inspect.$call(appVolume);
+                                await appVolume.inspect();
 
                             } else {
                                 if (!/^[a-z0-9-]+$/.test(arr[0])) {
@@ -400,9 +402,9 @@ function exports(whaler) {
 
                                 let appVolume = docker.getVolume(arr[0]);
                                 try {
-                                    yield appVolume.inspect.$call(appVolume);
+                                    await appVolume.inspect();
                                 } catch (e) {
-                                    appVolume = yield docker.createVolume.$call(docker, {
+                                    appVolume = await docker.createVolume({
                                         'Name': arr[0],
                                         'Driver': volumeCfg['driver'] || 'local',
                                         'DriverOpts': volumeCfg['driver_opts'] || {},
@@ -472,7 +474,7 @@ function exports(whaler) {
                     const arr = value.split(':');
                     if (3 === arr.length && 'container' === arr[1]) {
                         const container = docker.getContainer(arr[2]);
-                        const info = yield container.inspect.$call(container);
+                        const info = await container.inspect();
                         createOpts['HostConfig']['ExtraHosts'].push(arr[0] + ':' + info['NetworkSettings']['Networks']['bridge']['IPAddress']);
                     } else {
                         createOpts['HostConfig']['ExtraHosts'].push(value);
@@ -480,16 +482,16 @@ function exports(whaler) {
                 }
             }
 
-            const container = yield docker.createContainer.$call(docker, createOpts);
+            const container = await docker.createContainer(createOpts);
 
             if (whalerNetwork) {
-                yield whalerNetwork.connect.$call(whalerNetwork, {
+                await whalerNetwork.connect({
                     'Container': container.id
                 });
             }
 
             if (appNetwork) {
-                yield appNetwork.connect.$call(appNetwork, {
+                await appNetwork.connect({
                     'Container': container.id,
                     'EndpointConfig': {
                         'Aliases': [name]
@@ -497,13 +499,12 @@ function exports(whaler) {
                 });
             }
 
-            console.info('');
-            console.info('[%s] Container "%s.%s" created.', process.pid, name, appName);
+            whaler.info('Container "%s.%s" created.', name, appName);
 
             containers[name] = container;
         }
 
-        return containers;
+        ctx.result = containers;
     });
 
 }

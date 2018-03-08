@@ -6,23 +6,23 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('logs', function* (options) {
-        const docker = whaler.get('docker');
-        const container = docker.getContainer(options['ref']);
+    whaler.on('logs', async ctx => {
+        const { default: docker } = await whaler.fetch('docker');
+        const container = docker.getContainer(ctx.options['ref']);
 
         let stream;
 
-        container.followLogs = function* () {
-            const info = yield container.inspect.$call(container);
+        container.followLogs = async() => {
+            const info = await container.inspect();
 
-            stream = yield container.logs.$call(container, {
+            stream = await container.logs({
                 follow: true,
                 stdout: true,
                 stderr: true,
-                since: options['since'] || 0,
-                tail: options['tail'] || 'all'
+                since: ctx.options['since'] || 0,
+                tail: ctx.options['tail'] || 'all'
             });
 
             if (info['Config']['Tty']) {
@@ -34,7 +34,7 @@ function exports(whaler) {
             }
         };
 
-        container.exit = function* () {
+        container.exit = async () => {
             if (stream) {
                 if (stream.end) {
                     stream.end();
@@ -45,7 +45,7 @@ function exports(whaler) {
             }
         };
 
-        return container;
+        ctx.result = container;
     });
 
 }

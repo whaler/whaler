@@ -1,41 +1,38 @@
 'use strict';
 
-var pkg = require('./package.json');
-var console = require('x-console');
-var colors = require('colors/safe');
+const pkg = require('./package.json');
+const colors = require('colors/safe');
 
 module.exports = cmd;
 
 /**
  * @param whaler
  */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name + ' [name]')
         .description(pkg.description, {
             name: 'Application name'
         })
         .option('-f, --format <FORMAT>', 'The output format (txt or json) [default: "txt"]')
-        .action(function* (name, options) {
-            name = this.util.prepare('name', name);
+        .action(async (name, options, util) => {
+            name = util.prepare('name', name);
 
-            const response = yield whaler.$emit('status', {
-                name: name
-            });
+            const response = await whaler.emit('status', { name });
 
             if ('json' == options.format) {
-                this.ignoreEndLine(true);
                 console.log(JSON.stringify(response, null, 2));
             } else {
-                const table = whaler.get('cli-table')({
+                const table = (await whaler.fetch('cli-table')).default({
                     head: [ 'Container name', 'Status', 'IP' ]
                 });
 
                 const data = [];
                 let message = false;
                 for (let service of response) {
-                    const color = service.volatile ? 'red' : null;
+                    const color = service.volatile ? colors['red'] : null;
 
                     if (color && !message) {
                         message = true;
@@ -43,21 +40,20 @@ function cmd(whaler) {
 
                     const appName = service.name + '.' + name;
                     data.push([
-                        color ? colors[color]('*') + ' ' + appName : appName,
+                        color ? color('*') + ' ' + appName : appName,
                         service.status,
                         service.ip || '-'
                     ]);
                 }
 
-                console.log('');
-                console.log(table.render(data));
+                console.log('\n' + table.render(data) + '\n');
 
                 if (message) {
-                    console.log('');
-                    console.log('  ' + colors[color]('*') + ' Volatile container, will be removed on app rebuild.');
+                    console.log('\n  ' + color('*') + ' Volatile container, will be removed on app rebuild.\n');
                 }
             }
 
-        });
+        })
+        .ignoreEndLine(true);
 
 }

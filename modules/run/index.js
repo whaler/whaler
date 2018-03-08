@@ -6,13 +6,13 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('run', function* (options) {
-        let appName = options['ref'];
+    whaler.on('run', async ctx => {
+        let appName = ctx.options['ref'];
         let serviceName = null;
 
-        const parts = options['ref'].split('.');
+        const parts = ctx.options['ref'].split('.');
         if (2 == parts.length) {
             appName = parts[1];
             serviceName = parts[0];
@@ -22,11 +22,11 @@ function exports(whaler) {
             throw new Error('Command requires to specify a service name.');
         }
 
-        const docker = whaler.get('docker');
-        // const storage = whaler.get('apps');
-        // const app = yield storage.get.$call(storage, appName);
+        const { default: docker } = await whaler.fetch('docker');
+        // const { default: storage } = await whaler.fetch('apps');
+        // const app = await storage.get(appName);
 
-        const containers = yield docker.listContainers.$call(docker, {
+        await docker.listContainers({
             all: false,
             filters: JSON.stringify({
                 name: [
@@ -36,20 +36,20 @@ function exports(whaler) {
         });
 
         const serviceContainer = docker.getContainer(serviceName + '.' + appName);
-        const info = yield serviceContainer.inspect.$call(serviceContainer);
-        const attachStdin = options['stdin'];
+        const info = await serviceContainer.inspect();
+        const attachStdin = ctx.options['stdin'];
 
-        if ('string' === typeof options['cmd']) {
-            const hasEntrypoint = !!info['Config']['Entrypoint'] && info['Config']['Entrypoint'].length && options['entrypoint'];
+        if ('string' === typeof ctx.options['cmd']) {
+            const hasEntrypoint = !!info['Config']['Entrypoint'] && info['Config']['Entrypoint'].length && ctx.options['entrypoint'];
             if (hasEntrypoint) {
-                options['cmd'] = docker.util.parseCmd(options['cmd']);
+                ctx.options['cmd'] = docker.util.parseCmd(ctx.options['cmd']);
             } else {
-                options['cmd'] = ['/bin/sh', '-c', options['cmd']];
+                ctx.options['cmd'] = ['/bin/sh', '-c', ctx.options['cmd']];
             }
         }
 
         let nameSuffix;
-        if (options['detach'] || false) {
+        if (ctx.options['detach'] || false) {
             nameSuffix = '_detached_' + process.pid;
         } else {
             nameSuffix = '_pty_' + process.pid;
@@ -58,18 +58,18 @@ function exports(whaler) {
         const createOpts = {
             'name': serviceName + '.' + appName + nameSuffix,
             'Hostname': '',
-            'Cmd': options['cmd'],
-            'Env': (info['Config']['Env'] || []).concat(options['env'] || []),
+            'Cmd': ctx.options['cmd'],
+            'Env': (info['Config']['Env'] || []).concat(ctx.options['env'] || []),
             'Labels': {},
             'Image': info['Config']['Image'],
             'WorkingDir': info['Config']['WorkingDir'],
-            'Entrypoint': false === options['entrypoint'] ? [] : info['Config']['Entrypoint'],
+            'Entrypoint': false === ctx.options['entrypoint'] ? [] : info['Config']['Entrypoint'],
             'StdinOnce': false,
             'AttachStdin': attachStdin,
             'AttachStdout': true,
             'AttachStderr': true,
             'OpenStdin': attachStdin,
-            'Tty': options['tty'],
+            'Tty': ctx.options['tty'],
             'HostConfig': {
                 'AutoRemove': true,
                 'ExtraHosts': info['HostConfig']['ExtraHosts'],
@@ -80,55 +80,51 @@ function exports(whaler) {
 
         const startOpts = {};
 
-        const container = yield docker.createContainer.$call(docker, createOpts);
+        const container = await docker.createContainer(createOpts);
 
         let whalerNetwork = docker.getNetwork('whaler_nw');
-        yield whalerNetwork.connect.$call(whalerNetwork, {
+        await whalerNetwork.connect({
             'Container': container.id
         });
 
         let appNetwork = docker.getNetwork('whaler_nw.' + appName);
-        yield appNetwork.connect.$call(appNetwork, {
+        await appNetwork.connect({
             'Container': container.id
         });
 
-        container.run = function* () {
-
+        container.run = async () => {
             let err = null;
             let data = null;
 
-            if (options['detach'] || false) {
+            if (ctx.options['detach'] || false) {
                 try {
-                    yield container.start.$call(container, startOpts);
-                    data = yield container.inspect.$call(container);
-
+                    await container.start(startOpts);
+                    data = await container.inspect();
                 } catch (e) {
                     err = e;
                 }
-                
-            } else {
 
-                let revertPipe = function () {};
-                let revertResize = function () {};
+            } else {
+                let revertPipe = () => {};
+                let revertResize = () => {};
 
                 try {
-                    const stream = yield container.attach.$call(container, {
+                    const stream = await container.attach({
                         stream: true,
                         stdin: attachStdin,
                         stdout: true,
                         stderr: true
                     });
 
-                    revertPipe = pipe(whaler, stream, attachStdin, options['tty']);
+                    revertPipe = await pipe(stream, attachStdin, ctx.options['tty']);
 
-                    yield container.start.$call(container, startOpts);
+                    await container.start(startOpts);
 
-                    if (options['tty']) {
+                    if (ctx.options['tty']) {
                         revertResize = docker.util.resizeTTY(container);
                     }
 
-                    data = yield container.wait.$call(container);
-
+                    data = await container.wait();
                 } catch (e) {
                     err = e;
                 }
@@ -144,69 +140,62 @@ function exports(whaler) {
             return data;
         };
 
-        container.exit = function* () {
+        container.exit = async () => {
             try {
-                yield container.remove.$call(container, {
+                await container.remove({
                     v: true,
                     force: true
                 });
             } catch (e) {}
         };
 
-        return container;
+        ctx.result = container;
     });
-}
 
-// PRIVATE
+    // PRIVATE
 
-/**
- * @param whaler
- * @param stream
- * @param attachStdin
- * @param tty
- * @returns {Function}
- */
-function pipe(whaler, stream, attachStdin, tty) {
-    let unpipeStream = function() {};
+    const pipe = async (stream, attachStdin, tty) => {
+        let unpipeStream = () => {};
 
-    if (tty) {
-        stream.setEncoding('utf8');
-        stream.pipe(process.stdout, { end: false });
-        unpipeStream = function() {
-            stream.unpipe(process.stdout);
+        if (tty) {
+            stream.setEncoding('utf8');
+            stream.pipe(process.stdout, { end: false });
+            unpipeStream = () => {
+                stream.unpipe(process.stdout);
+            };
+        } else {
+            (await whaler.fetch('docker')).default.modem.demuxStream(stream, process.stdout, process.stderr);
+        }
+
+        const CTRL_ALT_C = '\u001B\u0003';
+        const isRaw = process.isRaw;
+        const keyPress = (key) => {
+            if (key === CTRL_ALT_C) {
+                whaler.emit('SIGINT');
+            }
         };
-    } else {
-        whaler.get('docker').modem.demuxStream(stream, process.stdout, process.stderr);
-    }
-
-    const CTRL_ALT_C = '\u001B\u0003';
-    const isRaw = process.isRaw;
-    const keyPress = function(key) {
-        if (key === CTRL_ALT_C) {
-            whaler.emit('SIGINT');
-        }
-    };
-
-    if (attachStdin) {
-        process.stdin.resume();
-        process.stdin.setRawMode(true);
-        process.stdin.pipe(stream);
-        process.stdin.on('data', keyPress);
-    }
-
-    return function revert() {
-        if (stream.end) {
-            stream.end();
-        }
-
-        unpipeStream();
 
         if (attachStdin) {
-            process.stdin.removeListener('data', keyPress);
-            process.stdin.unpipe(stream);
-            process.stdin.setRawMode(isRaw);
             process.stdin.resume();
-            process.stdin.pause();
+            process.stdin.setRawMode(true);
+            process.stdin.pipe(stream);
+            process.stdin.on('data', keyPress);
         }
-    }
+
+        return function revert() {
+            if (stream.end) {
+                stream.end();
+            }
+
+            unpipeStream();
+
+            if (attachStdin) {
+                process.stdin.removeListener('data', keyPress);
+                process.stdin.unpipe(stream);
+                process.stdin.setRawMode(isRaw);
+                process.stdin.resume();
+                process.stdin.pause();
+            }
+        }
+    };
 }

@@ -1,44 +1,42 @@
 'use strict';
 
-var pkg = require('./package.json');
-var console = require('x-console');
+const pkg = require('./package.json');
 
 module.exports = cmd;
 
 /**
  * @param whaler
  */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name)
         .description(pkg.description)
         .option('--port <PORT>', 'Port to use')
-        .action(function* (options) {
+        .action(async options => {
             let port = 1337;
             if (options.port) {
                 port = options.port;
             }
 
-            const daemon = yield whaler.$emit('daemon', {
+            const daemon = await whaler.emit('daemon', {
                 dir: process.env.WHALER_DAEMON_APPS || process.env.HOME + '/apps'
             });
 
-            whaler.before('SIGINT', function* () {
+            whaler.before('SIGINT', async ctx => {
                 daemon.close();
             });
 
             daemon.listen(port, () => {
-                console.warn('[%s] Daemon start listening %s port.', process.pid, port);
-
-                daemon.initListeners((err) => {
+                whaler.warn('Daemon start listening %s port.', port);
+                daemon.initListeners().catch((err) => {
                     if (err) {
-                        console.error('');
-                        console.error('[%s] %s', process.pid, err.message);
-                        console.error('');
+                        whaler.error('%s\n', err.message);
                     }
                 });
             });
-        });
+        })
+        .ignoreEndLine(true);
 
 }

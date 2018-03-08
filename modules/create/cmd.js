@@ -1,29 +1,30 @@
 'use strict';
 
-var pkg = require('./package.json');
+const pkg = require('./package.json');
 
 module.exports = cmd;
 
 /**
  * @param whaler
  */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name + ' [ref]')
         .description(pkg.description, {
             ref: 'Application or container name'
         })
         .option('--config <CONFIG>', 'Specify an config file')
-        .action(function* (ref, options) {
-            ref = this.util.prepare('ref', ref);
+        .action(async (ref, options, util) => {
+            ref = util.prepare('ref', ref);
             if (options.config) {
-                options.config = this.util.prepare('path', options.config);
+                options.config = util.prepare('path', options.config);
             }
 
-            const containers = yield whaler.$emit('create', {
-                ref: ref,
-                config: options.config
+            await whaler.emit('create', {
+                ref,
+                ...util.filter(options, ['config'])
             });
         });
 

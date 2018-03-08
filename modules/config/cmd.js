@@ -1,19 +1,19 @@
 'use strict';
 
-var yaml = require('js-yaml');
-var jsDiff = require('diff');
-var pkg = require('./package.json');
-var console = require('x-console');
-var colors = require('colors/safe');
+const yaml = require('js-yaml');
+const jsDiff = require('diff');
+const pkg = require('./package.json');
+const colors = require('colors/safe');
 
 module.exports = cmd;
 
 /**
  * @param whaler
  */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name + ' [name]')
         .description(pkg.description, {
             name: 'Application name'
@@ -22,17 +22,15 @@ function cmd(whaler) {
         .option('--update', 'Update config')
         .option('--file <FILE>', 'Specify an config file (default: ./whaler.yml)')
         .option('--set-env <ENV>', 'Set application environment')
-        .action(function* (name, options) {
-            name = this.util.prepare('name', name);
+        .action(async (name, options, util) => {
+            name = util.prepare('name', name);
             if (options.file) {
-                options.file = this.util.prepare('path', options.file);
+                options.file = util.prepare('path', options.file);
             }
 
-            const config = yield whaler.$emit('config', {
-                name: name,
-                file: options.file,
-                update: options.update,
-                setEnv: options.setEnv
+            const config = await whaler.emit('config', {
+                name,
+                ...util.filter(options, ['file', 'update', 'setEnv'])
             });
 
             const yamlDumpOpts = {
@@ -41,20 +39,19 @@ function cmd(whaler) {
                 noCompatMode: true
             };
 
-            console.log('');
             if (options.update) {
-                console.info('[%s] Application "%s" config updated.', process.pid, name);
+                whaler.info('Application "%s" config updated.', name);
             } else if (options.setEnv) {
-                console.info('[%s] Application "%s" env updated.', process.pid, name);
+                whaler.info('Application "%s" env updated.', name);
             } else {
                 if (options.diff) {
-                    const _config = yield whaler.$emit('config', {
-                        name: name,
+                    const _config = await whaler.emit('config', {
+                        name,
                         file: options.file ? null : config.file
                     });
 
-                    let config1 = yaml.dump(_config.data, yamlDumpOpts) + '\n';
-                    let config2 = yaml.dump(config.data, yamlDumpOpts) + '\n';
+                    const config1 = yaml.dump(_config.data, yamlDumpOpts) + '\n';
+                    const config2 = yaml.dump(config.data, yamlDumpOpts) + '\n';
 
                     if (config1 !== config2) {
                         let diff;
@@ -64,8 +61,9 @@ function cmd(whaler) {
                             diff = jsDiff.diffLines(config2, config1);
                         }
 
+                        console.log('');
                         diff.forEach((part) => {
-                            let value = part['value'].split('\n\n').join('\n');
+                            const value = part['value'].split('\n\n').join('\n');
                             if (part['added']) {
                                 process.stdout.write(colors.green(value));
                             } else if (part['removed']) {
@@ -75,13 +73,12 @@ function cmd(whaler) {
                             }
                         });
                     } else {
-                        console.info('[%s] Configs are identical.', process.pid);
+                        whaler.info('Configs are identical.');
                     }
 
                 } else {
-                    console.info(config.file, '\n');
-                    let data = yaml.dump(config.data, yamlDumpOpts);
-                    console.log(data.trim());
+                    console.info('\n' + config.file + '\n');
+                    console.log(yaml.dump(config.data, yamlDumpOpts).trim());
                 }
             }
         });

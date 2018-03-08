@@ -1,8 +1,9 @@
 'use strict';
 
-var fs = require('fs');
-var path = require('path');
-var mkdirp = require('mkdirp');
+const fs = require('fs/promises');
+const path = require('path');
+const util = require('util');
+const mkdirp = util.promisify(require('mkdirp'));
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
@@ -10,65 +11,66 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('init', function* (options) {
-        const storage = whaler.get('apps');
-        options['path'] = options['path'] || process.cwd();
+    whaler.on('init', async ctx => {
+        ctx.options['path'] = ctx.options['path'] || process.cwd();
 
-        if (!path.isAbsolute(options['path'])) {
+        if (!path.isAbsolute(ctx.options['path'])) {
             throw new Error('App path must be absolute.');
         }
 
         if (process.env.WHALER_DAEMON_NAME) {
             let dir = process.env.WHALER_DAEMON_DIR;
 
-            if (dir !== options['path']) {
-                dir = path.join(dir, path.basename(options['path']));
+            if (dir !== ctx.options['path']) {
+                dir = path.join(dir, path.basename(ctx.options['path']));
             } else {
-                if (path.basename(options['path']) !== options['name']) {
-                    dir = path.join(dir, options['name']);
+                if (path.basename(ctx.options['path']) !== ctx.options['name']) {
+                    dir = path.join(dir, ctx.options['name']);
                 } else {
                     dir = path.join(dir, process.env.WHALER_DAEMON_NAME);
                 }
             }
 
-            options['path'] = dir;
-            if (options['config']) {
-                options['config'] = options['config'].replace(process.env.WHALER_DAEMON_DIR, dir);
+            ctx.options['path'] = dir;
+            if (ctx.options['config']) {
+                ctx.options['config'] = ctx.options['config'].replace(process.env.WHALER_DAEMON_DIR, dir);
             } else {
-                options['config'] = path.join(dir, 'whaler.yml');
+                ctx.options['config'] = path.join(dir, 'whaler.yml');
             }
 
             try {
-                yield fs.stat.$call(null, dir);
+                await fs.stat(dir);
             } catch (e) {
-                yield mkdirp.$call(null, path.dirname(options['config']));
-                yield fs.writeFile.$call(null, options['config'], '');
+                await mkdirp(path.dirname(ctx.options['config']));
+                await fs.writeFile(ctx.options['config'], '');
             }
         }
 
-        if (!/^[a-z0-9-]+$/.test(options['name'])) {
-            throw new Error('Application name "' + options['name'] + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
+        if (!/^[a-z0-9-]+$/.test(ctx.options['name'])) {
+            throw new Error('Application name "' + ctx.options['name'] + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
         }
 
-        const app = yield storage.add.$call(storage, options['name'], {
-            path: options['path'],
-            env:  options['env'] || process.env.WHALER_ENV || 'dev',
+        const { default: storage } = await whaler.fetch('apps');
+
+        const app = await storage.add(ctx.options['name'], {
+            path: ctx.options['path'],
+            env:  ctx.options['env'] || process.env.WHALER_ENV || 'dev',
             config: {}
         });
 
         try {
-            app['config'] = yield whaler.$emit('config', {
-                name: options['name'],
-                file: options['config'],
+            app['config'] = await whaler.emit('config', {
+                name: ctx.options['name'],
+                file: ctx.options['config'],
                 update: true
             });
 
-            return app;
+            ctx.result = app;
 
         } catch (e) {
-            yield storage.remove.$call(storage, options['name']);
+            await storage.remove(ctx.options['name']);
             throw e;
         }
     });

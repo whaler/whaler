@@ -1,121 +1,170 @@
 'use strict';
 
-require('x-node').inject();
+require('./lib/console');
+require('./lib/polyfill');
 
-var fs = require('fs');
-var util = require('util');
-var EventEmitter = require('x-node/events');
-var parseEnv = require('./lib/parse-env');
+const fs = require('fs/promises');
+const parseEnv = require('./lib/parse-env');
+const promisify = require('./lib/promisify');
+const Application = require('./lib/application');
+
+const CONFIG = Symbol('config');
+
+// TODO: remove in v1
+const promisifyCache = {};
+
+class Whaler extends Application {
+    /**
+     * @api public
+     */
+    constructor() {
+        super();
+        this.path = __dirname;
+
+        // TODO: remove in v1
+        this._require = (id) => module.require(id);
+    }
+
+    /**
+     * @api public
+     */
+    async init() {
+        // base
+        await mkdir('/etc/whaler');
+        await loadEnv('/etc/whaler/env');
+
+        // home
+        if (await exists(process.env.HOME + '/.whaler')) {
+            await loadEnv(process.env.HOME + '/.whaler/env');
+        }
+
+        // bridge
+        await mkdir('/var/lib/whaler/bin');
+        await fs.writeFile('/var/lib/whaler/bin/bridge', await fs.readFile(__dirname + '/bin/bridge'), { mode: '755' });
+
+        // SIGINT
+        this.on('SIGINT', () => {
+            process.stdout.write('\n');
+            process.exit();
+        });
+        process.on('SIGINT', () => {
+            this.emit('SIGINT');
+        });
+        //process.stdin.on('data', (key) => {
+        //    // Ctrl+C
+        //    if (key === '\u0003') {
+        //        this.emit('SIGINT');
+        //    }
+        //});
+        process.stdin.setEncoding('utf8');
+        process.stdin.pause();
+    }
+
+    /**
+     * @api
+     */
+    async config() {
+        const configFile = '/etc/whaler/config.json';
+
+        if (!this[CONFIG]) {
+            let data = '{}';
+            try {
+                data = await fs.readFile(configFile, 'utf8');
+            } catch (err) {}
+
+            try {
+                this[CONFIG] = JSON.parse(data);
+            } catch (e) {
+                throw new Error('Unexpected JSON format in ' + configFile);
+            }
+        }
+
+        return this[CONFIG];
+    }
+
+    /**
+     * @api
+     * @param id
+     */
+    async import(id) {
+        if (module.import) {
+            return await module.import(id);
+        }
+        return { default: module.require(id) };
+    }
+
+    /**
+     * @api
+     * @param id
+     */
+    async fetch(id) {
+        // TODO: refactor and remove in v1
+        if (['apps', 'vars'].includes(id)) {
+            if (!promisifyCache[id]) {
+                const imported = await this.import('./src/' + id);
+                imported.default = promisify(imported.default);
+                promisifyCache[id] = imported;
+            }
+            return promisifyCache[id];
+        }
+
+        return await this.import('./src/' + id);
+    }
+
+    /**
+     * @api
+     */
+    log(message, ...args) {
+        return this.emit('console', { type: 'log', message, args });
+    }
+
+    /**
+     * @api
+     */
+    info(message, ...args) {
+        return this.emit('console', { type: 'info', message, args });
+    }
+
+    /**
+     * @api
+     */
+    warn(message, ...args) {
+        return this.emit('console', { type: 'warn', message, args });
+    }
+
+    /**
+     * @api
+     */
+    error(message, ...args) {
+        return this.emit('console', { type: 'error', message, args });
+    }
+}
 
 module.exports = Whaler;
 
-let config = null;
-
-function Whaler() {
-    this.path = __dirname;
-}
-
-util.inherits(Whaler, EventEmitter);
-
-/**
- * @prototype
- * @param gen
- * @param callback
- */
-Whaler.prototype.$async = function(gen, callback) {
-    gen.$async(callback)();
-};
-
-/**
- * @api
- * @param id
- */
-Whaler.prototype.require = function(id) {
-    return module.require(id);
-};
-
-/**
- * @api
- * @param id
- */
-Whaler.prototype.get = function(id) {
-    return module.require('./src/' + id);
-};
-
-/**
- * @api
- * @param callback
- */
-Whaler.prototype.config = function(callback = (err, config) => null) {
-    const configFile = '/etc/whaler/config.json';
-
-    if (config !== null) {
-        return callback(null, config);
-    }
-
-    fs.readFile(configFile, 'utf8', (err, data) => {
-        let _config = {};
-        if (!err) {
-            try {
-                _config = JSON.parse(data);
-            } catch (e) {
-                return callback(new Error('Unexpected JSON format in ' + configFile));
-            }
-        }
-        callback(null, config = _config);
-    });
-};
-
-/**
- * Base method
- */
-Whaler.prototype.init = function(callback = (err) => null) {
-    // base
-    mkdir('/etc/whaler');
-    loadEnv('/etc/whaler/env');
-
-    // home
-    if (fs.existsSync(process.env.HOME + '/.whaler')) {
-        loadEnv(process.env.HOME + '/.whaler/env');
-    }
-
-    // bridge
-    mkdir('/var/lib/whaler/bin');
-    fs.writeFileSync('/var/lib/whaler/bin/bridge', fs.readFileSync(__dirname + '/bin/bridge'), { mode: '755' });
-
-    // SIGINT
-    this.on('SIGINT', () => {
-        process.stdout.write('\n');
-        process.exit();
-    });
-    process.on('SIGINT', () => {
-        this.emit('SIGINT');
-    });
-    //process.stdin.on('data', (key) => {
-    //    // Ctrl+C
-    //    if (key === '\u0003') {
-    //        this.emit('SIGINT');
-    //    }
-    //});
-    process.stdin.setEncoding('utf8');
-    process.stdin.pause();
-
-    callback(null);
-};
-
 // PRIVATE
 
-function mkdir(dir) {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir);
+async function exists (path) {
+    //return await fs.exists(path);
+    try {
+        await fs.stat(path);
+        return true;
+    } catch (e) {}
+
+    return false;
+}
+
+async function mkdir (dir) {
+    if (!(await exists(dir))) {
+        await fs.mkdir(dir);
     }
 }
 
-function loadEnv(envFile) {
-    if (fs.existsSync(envFile)) {
+async function loadEnv (envFile) {
+    if (await exists(envFile)) {
         let content;
         try {
-            content = fs.readFileSync(envFile, 'utf8');
+            content = await fs.readFile(envFile, 'utf8');
         } catch (e) {
             throw new TypeError('Environment file could not be read: ' + e);
         }
@@ -127,6 +176,6 @@ function loadEnv(envFile) {
             }
         }
     } else {
-        fs.writeFileSync(envFile, fs.readFileSync(__dirname + '/.env'));
+        await fs.writeFile(envFile, await fs.readFile(__dirname + '/.env'));
     }
 }

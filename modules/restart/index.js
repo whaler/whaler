@@ -6,11 +6,11 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('restart', function* (options) {
-        yield whaler.$emit('stop', options);
-        return yield whaler.$emit('start', options);
+    whaler.on('restart', async ctx => {
+        await whaler.emit('stop', ctx.options);
+        ctx.result = await whaler.emit('start', ctx.options);
     });
 
 }

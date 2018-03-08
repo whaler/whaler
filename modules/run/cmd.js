@@ -1,15 +1,16 @@
 'use strict';
 
-var pkg = require('./package.json');
+const pkg = require('./package.json');
 
 module.exports = cmd;
 
 /**
  * @param whaler
  */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name + ' [ref] [cmd]')
         .description(pkg.description, {
             ref: 'Container name',
@@ -19,8 +20,8 @@ function cmd(whaler) {
         .option('-d, --detach', 'Run container in background and print container ID')
         .option('--no-entrypoint', 'Disable entrypoint')
         .option('--non-interactive', 'Run command in non-interactive mode')
-        .action(function* (ref, cmd, options) {
-            ref = this.util.prepare('ref', ref);
+        .action(async (ref, cmd, options, util) => {
+            ref = util.prepare('ref', ref);
             cmd = cmd || process.env.WHALER_RUN_CMD || '/bin/sh';
 
             let tty = true;
@@ -30,21 +31,16 @@ function cmd(whaler) {
                 stdin = false;
             }
 
-            const container = yield whaler.$emit('run', {
-                ref: ref,
-                cmd: cmd,
-                env: options.env,
-                tty: tty,
-                stdin: stdin,
-                detach: options.detach || false,
-                entrypoint: options.entrypoint
+            const container = await whaler.emit('run', {
+                ref, cmd, tty, stdin,
+                ...util.filter(options, ['env', 'detach', 'entrypoint'])
             });
 
-            whaler.before('SIGINT', function* () {
-                yield container.exit.$call(null);
+            whaler.before('SIGINT', async () => {
+                await container.exit();
             });
 
-            const data = yield container.run.$call(null);
+            const data = await container.run();
 
             if (options.detach) {
                 console.log(data['Id']);
@@ -52,7 +48,7 @@ function cmd(whaler) {
             } else {
                 const CTRL_ALT_C = 137;
                 if (CTRL_ALT_C !== data['StatusCode']) {
-                    yield container.exit.$call(null);
+                    await container.exit();
                 }
                 process.exit(data['StatusCode']);
             }

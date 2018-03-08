@@ -1,9 +1,12 @@
 'use strict';
 
-var path = require('path');
-var cli = require('x-commander/extra');
-var pkg = require('../package.json');
-var console = require('x-console');
+const path = require('path');
+const cli = require('x-commander/extra');
+const pkg = require('../package.json');
+const deprecate = require('../lib/deprecate');
+
+// TODO: remove in v1
+const $ = require('x-node');
 
 cli.l10n({
     'Usage:': 'Usage:' + '\n\n   ',
@@ -11,13 +14,15 @@ cli.l10n({
     'output the version number': 'Display this application version'
 });
 
-cli.Command.prototype.util = {
+cli.deprecate = message => null;
+
+const util = {
     /**
      * @param {String} type
      * @param {String} value
      * @returns {String}
      */
-    prepare: function(type, value) {
+    prepare: (type, value) => {
         if ('name' == type) {
             let name = path.basename(process.cwd());
             if (process.env.WHALER_DAEMON_NAME) {
@@ -55,6 +60,19 @@ cli.Command.prototype.util = {
         }
 
         return value;
+    },
+
+    /**
+     * @param {Object} options
+     * @param {Array} keys
+     * @returns {Object}
+     */
+    filter: (options, keys) => {
+        const result = {};
+        for (let key of keys) {
+            result[key] = options.hasOwnProperty(key) ? options[key] : undefined;
+        }
+        return result;
     }
 };
 
@@ -63,25 +81,38 @@ cli.Command.prototype.util = {
  */
 cli.Command.prototype.ignoreEndLine = function(status) {
     this.__ignoreEndLine = status;
+    return this;
 };
 
 cli.Command.prototype._action = cli.Command.prototype.action;
 cli.Command.prototype.action = function(fn) {
-    if (fn.$isGenerator()) {
-        fn = fn.bind(this);
-        return this._action(
-            fn.$async((err) => {
-                if (err) {
-                    console.error('');
-                    console.error('[%s] %s', process.pid, err.message);
-                    console.error('');
-                } else if (true !== this.__ignoreEndLine) {
-                    console.log('');
-                }
-            })
+
+    const done = err => {
+        if (err) {
+            console.error('\n[%s] %s\n', process.pid, err.message);
+        } else if (true !== this.__ignoreEndLine) {
+            console.log('');
+        }
+    };
+
+    // TODO: remove in v1
+    if ($.isGenerator(fn)) {
+        cli.deprecate(
+            deprecate(trace => '"cli.action" support for generators will be removed in v1.')
         );
+        this.util = util;
+        fn = fn.bind(this);
+        return this._action($.async(fn, done));
     } else {
-        return this._action(fn);
+        return this._action(async (...args) => {
+            let err = null;
+            try {
+                await fn(...args, util);
+            } catch (e) {
+                err = e;
+            }
+            done(err);
+        });
     }
 };
 

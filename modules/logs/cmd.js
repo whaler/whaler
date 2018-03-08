@@ -1,24 +1,25 @@
 'use strict';
 
-var pkg = require('./package.json');
-var str2time = require('../../lib/str2time');
+const pkg = require('./package.json');
+const str2time = require('../../lib/str2time');
 
 module.exports = cmd;
 
 /**
  * @param whaler
  */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name + ' [ref]')
         .description(pkg.description, {
             ref: 'Container name'
         })
         .option('--since <SINCE>', 'Show logs since timestamp (e.g. 2017-05-12T14:40:00) or relative (e.g. 42m for 42 minutes)')
         .option('--tail <TAIL>', 'Number of lines to show from the end of the logs (default: all)')
-        .action(function* (ref, options) {
-            ref = this.util.prepare('ref', ref);
+        .action(async (ref, options, util) => {
+            ref = util.prepare('ref', ref);
 
             let since = options['since'] || 0;
             let now = Math.floor(new Date().getTime() / 1000);
@@ -33,18 +34,14 @@ function cmd(whaler) {
                 }
             }
 
-            const container = yield whaler.$emit('logs', {
-                ref: ref,
-                since: since,
-                tail: options.tail
+            const container = await whaler.emit('logs', { ref, since, ...util.filter(options, ['tail']) });
+
+            whaler.before('SIGINT', async ctx => {
+                await container.exit();
             });
 
-            whaler.before('SIGINT', function* () {
-                yield container.exit.$call(null);
-            });
-
-            yield container.followLogs.$call(null);
-
-        });
+            await container.followLogs();
+        })
+        .ignoreEndLine(true);
 
 }

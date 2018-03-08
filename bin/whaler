@@ -4,84 +4,107 @@
 
 process.bin = process.title = 'whaler';
 
-var console = require('x-console');
-var Whaler = require('../index');
+const Whaler = require('../index');
 
-var whaler = new Whaler();
+const whaler = new Whaler();
 
-var argv = process.argv.slice(2);
-var index = argv.indexOf('-H');
+const argv = process.argv.slice(2);
+let index = argv.indexOf('-H');
 if (-1 === index) {
     index = argv.indexOf('--host');
 }
 
+whaler.on('deprecate', async ctx => {
+    if ('ON' != process.env.WHALER_NO_DEPRECATION) {
+        const { message } = ctx.options;
+        console.log('\n' + message);
+    }
+});
+
+whaler.on('console', async ctx => {
+    const { type, message, args } = ctx.options;
+    console[type]('\n%s[%s] ' + message, ' '.repeat(argv.length ? 0 : 2), process.pid, ...args);
+});
+
 if (-1 !== index && argv[index + 1]) {
 
-    var args = argv.splice(index, 2);
-    whaler.get('client')(args[1], argv);
+    const args = argv.splice(index, 2);
+    whaler.fetch('client').then(({ default: client }) => {
+        client(args[1], argv);
+    }).catch(err => {
+        whaler.error('%s\n', err.message);
+    });
 
 } else {
 
-    var progress = whaler.get('progress');
-
-    (function* () {
-
-        yield whaler.init.$call(whaler);
-
+    const progress = require('../src/progress');
+    progress.active = true;
+    progress.run = () => {
         if (!argv.length) {
             console.log('');
-            console.log(whaler.get('header'));
+            console.log(require('../src/header'));
             console.log('');
             progress.start(2);
         } else {
             progress.start();
         }
+    };
+    progress.done = () => {
+        progress.active = false;
+        progress.stop();
+    };
 
-        const modules = whaler.get('modules');
-        const plugins = whaler.get('plugins');
+    whaler.before('deprecate', async ctx => 'ON' != process.env.WHALER_NO_DEPRECATION && progress.active && progress.stop());
+    whaler.after('deprecate', async ctx => 'ON' != process.env.WHALER_NO_DEPRECATION && progress.active && progress.start());
 
-        for (let name of yield modules.list.$call(modules)) {
-            const module = whaler.require('./modules/' + name);
-            module(whaler);
+    whaler.before('console', async ctx => progress.active && progress.stop());
+    whaler.after('console', async ctx => progress.active && progress.start());
+
+    void async function main () {
+        progress.run();
+
+        await whaler.init();
+
+        const [ cli, modules , plugins ] = await Promise.all([
+            whaler.fetch('cli').then(({ default: cli }) => cli),
+            whaler.fetch('modules').then(({ default: modules }) => modules),
+            whaler.fetch('plugins').then(({ default: plugins }) => plugins)
+        ]);
+
+        // TODO: remove in v1
+        cli.deprecate = message => whaler.deprecate(message);
+
+        for (let name of await modules.list()) {
+            const { default: module } = await modules.import(name);
+            await module(whaler);
             if (module['__cmd']) {
-                module['__cmd'](whaler);
+                await module['__cmd'](whaler);
             }
         }
 
-        for (let name of yield plugins.list.$call(plugins)) {
+        for (let name of await plugins.list()) {
             try {
-                const plugin = plugins.require(name);
-                plugin(whaler);
+                const { default: plugin } = await plugins.import(name);
+                await plugin(whaler);
                 if (plugin['__cmd']) {
-                    plugin['__cmd'](whaler);
+                    await plugin['__cmd'](whaler);
                 }
             } catch (e) {
-                progress.stop();
-                console.error('');
-                console.error('%s[%s] %s: %s', ' '.repeat(argv.length ? 0 : 2), process.pid, name, e.message);
+                whaler.error('%s: %s', name, e.message);
             }
         }
 
-        return whaler.get('cli');
-
-    }).$async((err, cli) => {
-
-        progress.stop();
-
-        if (err) {
-            console.error('');
-            console.error('[%s] %s', process.pid, err.message);
-            console.error('');
+        return cli;
+    }().then(cli => {
+        progress.done();
+        if (!argv.length) {
+            cli.help();
+        } else {
+            cli.parse(process.argv);
         }
-
-        if (cli) {
-            if (!argv.length) {
-                cli.help();
-            } else {
-                cli.parse(process.argv);
-            }
-        }
-
-    })();
+    }).catch(err => {
+        progress.done();
+        whaler.error('%s\n', err.message);
+    });
 
 }

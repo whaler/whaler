@@ -1,25 +1,23 @@
 'use strict';
 
-var pkg = require('./package.json');
+const pkg = require('./package.json');
 
 module.exports = cmd;
 
 /**
  * @param whaler
  */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name + ' [ref]')
         .description(pkg.description, {
             ref: 'Application or container name'
         })
-        .action(function* (ref, options) {
-            ref = this.util.prepare('ref', ref);
-
-            const containers = yield whaler.$emit('rebuild', {
-                ref: ref
-            });
+        .action(async (ref, options, util) => {
+            ref = util.prepare('ref', ref);
+            await whaler.emit('rebuild', { ref });
         });
 
 }

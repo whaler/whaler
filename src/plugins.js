@@ -1,42 +1,54 @@
 'use strict';
 
-var Manager = require('nmpm');
-var request = require('request');
+const util = require('util');
+const Manager = require('nmpm');
+const request = require('request');
 
-/**
- * @param name
- * @param callback
- */
-Manager.prototype.__info = Manager.prototype.info;
-Manager.prototype.info = function(name, callback) {
-    var me = this;
+const asyncRequest = util.promisify((url, callback) => {
+    request(url, (err, resp, body) => {
+        if (err) {
+            return callback(err);
+        }
 
-    // https://github.com/<account>/<repository>[#version]
-    if (-1 !== name.indexOf('https://github.com/')) {
+        callback(null, { resp, body });
+    });
+});
 
-        const parts = name.replace('github.com', 'raw.githubusercontent.com').split('#');
-        const url = parts[0].replace(/\/+$/, '').replace(/\.git+$/, '');
-
-        request(url + '/' + (parts.length > 1 ? parts[1] : 'master') + '/package.json', (err, resp, body) => {
-            if (err) {
-                return callback(err);
+class Plugins extends Manager {
+    /**
+     * @api public
+     */
+    constructor() {
+        super('whaler-plugin', {
+            opts: {
+                'loglevel': 'error',
+                'package-lock': false,
+                'prefix': '/var/lib/whaler/plugins'
             }
-
-            if (resp.statusCode == 200) {
-                return callback(null, JSON.parse(body));
-            }
-
-            return callback(null, false);
         });
-
-        return;
     }
 
-    me.__info(name, callback);
-};
+    /**
+     * @api public
+     * @param name
+     */
+    async info(name) {
 
-module.exports = new Manager('whaler-plugin', {
-    'loglevel': 'error',
-    'package-lock': false,
-    'prefix': '/var/lib/whaler/plugins'
-});
+        // https://github.com/<account>/<repository>[#version]
+        if (-1 !== name.indexOf('https://github.com/')) {
+            const parts = name.replace('github.com', 'raw.githubusercontent.com').split('#');
+            const url = parts[0].replace(/\/+$/, '').replace(/\.git+$/, '');
+
+            const { resp, body } = await asyncRequest(url + '/' + (parts.length > 1 ? parts[1] : 'master') + '/package.json');
+            if (resp.statusCode == 200) {
+                return JSON.parse(body);
+            }
+
+            return false;
+        }
+
+        return await super.info(name);
+    }
+}
+
+module.exports = new Plugins();

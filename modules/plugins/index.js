@@ -6,21 +6,21 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('plugins', function* () {
-        const plugins = whaler.get('plugins');
-        return yield plugins.list.$call(plugins);
+    whaler.on('plugins', async ctx => {
+        const { default: plugins } = await whaler.fetch('plugins');
+        ctx.result = await plugins.list();
     });
 
-    whaler.on('plugins:install', function* (options) {
-        const plugins = whaler.get('plugins');
-        return yield plugins.install.$call(plugins, options['name']);
+    whaler.on('plugins:install', async ctx => {
+        const { default: plugins } = await whaler.fetch('plugins');
+        ctx.result = await plugins.install(ctx.options['name']);
     });
 
-    whaler.on('plugins:remove', function* (options) {
-        const plugins = whaler.get('plugins');
-        return yield plugins.remove.$call(plugins, options['name']);
+    whaler.on('plugins:remove', async ctx => {
+        const { default: plugins } = await whaler.fetch('plugins');
+        ctx.result = await plugins.remove(ctx.options['name']);
     });
 
 }

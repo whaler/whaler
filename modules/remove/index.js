@@ -1,7 +1,6 @@
 'use strict';
 
-var fs = require('fs');
-var console = require('x-console');
+const fs = require('fs/promises');
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
@@ -9,21 +8,21 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('remove', function* (options) {
-        let appName = options['ref'];
+    whaler.on('remove', async ctx => {
+        let appName = ctx.options['ref'];
         let serviceName = null;
 
-        const parts = options['ref'].split('.');
+        const parts = ctx.options['ref'].split('.');
         if (2 == parts.length) {
             appName = parts[1];
             serviceName = parts[0];
         }
 
-        const docker = whaler.get('docker');
-        const storage = whaler.get('apps');
-        const app = yield storage.get.$call(storage, appName);
+        const { default: docker } = await whaler.fetch('docker');
+        const { default: storage } = await whaler.fetch('apps');
+        const app = await storage.get(appName);
 
         let services = Object.keys(app.config['data']['services']);
 
@@ -31,7 +30,7 @@ function exports(whaler) {
             services = [serviceName];
 
         } else {
-            const containers = yield docker.listContainers.$call(docker, {
+            const containers = await docker.listContainers({
                 all: true,
                 filters: JSON.stringify({
                     name: [
@@ -51,35 +50,29 @@ function exports(whaler) {
         for (let name of services) {
             const container = docker.getContainer(name + '.' + appName);
 
-            console.info('');
-            console.info('[%s] Removing "%s.%s" container.', process.pid, name, appName);
+            whaler.info('Removing "%s.%s" container.', name, appName);
 
             try {
-                yield container.remove.$call(container, {
+                await container.remove({
                     v: true,
                     force: true
                 });
 
-                console.info('');
-                console.info('[%s] Container "%s.%s" removed.', process.pid, name, appName);
-
+                whaler.info('Container "%s.%s" removed.', name, appName);
             } catch (e) {
-
-                console.warn('');
-                console.warn('[%s] Container "%s.%s" already removed.', process.pid, name, appName);
+                whaler.warn('Container "%s.%s" already removed.', name, appName);
             }
 
-            if (options['purge']) {
+            if (ctx.options['purge']) {
                 const config = app.config['data']['services'][name];
                 if (config) {
                     const imageName = config['image'] || 'whaler_' + appName + '_' + name;
 
                     try {
                         const image = docker.getImage(imageName);
-                        yield image.remove.$call(image);
+                        await image.remove();
 
-                        console.warn('');
-                        console.warn('[%s] Image "%s" removed.', process.pid, imageName);
+                        whaler.warn('Image "%s" removed.', imageName);
                     } catch (e) {}
                 }
             }
@@ -88,28 +81,27 @@ function exports(whaler) {
         if (null === serviceName) {
             try {
                 const appNetwork = docker.getNetwork('whaler_nw.' + appName);
-                yield appNetwork.remove.$call(appNetwork, {});
+                await appNetwork.remove({});
             } catch (e) {}
         }
 
-        if (options['purge']) {
+        if (ctx.options['purge']) {
             if (serviceName) {
                 try {
-                    yield fs.stat.$call(null, '/var/lib/whaler/volumes/' + appName + '/' + serviceName);
-                    yield deleteFolderRecursive.$call(null, '/var/lib/whaler/volumes/' + appName + '/' + serviceName);
+                    await fs.stat('/var/lib/whaler/volumes/' + appName + '/' + serviceName);
+                    await deleteFolderRecursive('/var/lib/whaler/volumes/' + appName + '/' + serviceName);
                 } catch (e) {}
 
-                console.warn('');
-                console.warn('[%s] Service "%s" removed.', process.pid, serviceName);
+                whaler.warn('Service "%s" removed.', serviceName);
 
             } else {
                 try {
-                    yield fs.stat.$call(null, '/var/lib/whaler/volumes/' + appName);
-                    yield deleteFolderRecursive.$call(null, '/var/lib/whaler/volumes/' + appName);
+                    await fs.stat('/var/lib/whaler/volumes/' + appName);
+                    await deleteFolderRecursive('/var/lib/whaler/volumes/' + appName);
                 } catch (e) {}
 
                 // remove named volumes
-                const volumesList = yield docker.listVolumes.$call(docker, {
+                const volumesList = await docker.listVolumes({
                     filters: JSON.stringify({
                         name: [
                             '^whaler_vlm[\.]{1}' + appName + '[\.]{1}[a-z0-9\-]+$'
@@ -119,16 +111,15 @@ function exports(whaler) {
                 if (volumesList['Volumes']) {
                     for (let rmVolume of volumesList['Volumes']) {
                         let appVolume = docker.getVolume(rmVolume['Name']);
-                        yield appVolume.remove.$call(appVolume, {
+                        await appVolume.remove({
                             force: true
                         });
                     }
                 }
 
-                yield storage.remove.$call(storage, appName);
+                await storage.remove(appName);
 
-                console.warn('');
-                console.warn('[%s] Application "%s" removed.', process.pid, appName);
+                whaler.warn('Application "%s" removed.', appName);
             }
         }
     });
@@ -137,16 +128,16 @@ function exports(whaler) {
 /**
  * @param path
  */
-function* deleteFolderRecursive(path) {
-    const data = yield fs.readdir.$call(null, path);
+async function deleteFolderRecursive (path) {
+    const data = await fs.readdir(path);
     for (let file of data) {
         const curPath = path + '/' + file;
-        const stat = yield fs.lstat.$call(null, curPath);
+        const stat = await fs.lstat(curPath);
         if (stat.isDirectory()) {
-            yield deleteFolderRecursive.$call(null, curPath);
+            await deleteFolderRecursive(curPath);
         } else {
-            yield fs.unlink.$call(null, curPath);
+            await fs.unlink(curPath);
         }
     }
-    yield fs.rmdir.$call(null, path);
+    await fs.rmdir(path);
 }

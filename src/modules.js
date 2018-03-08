@@ -1,36 +1,68 @@
 'use strict';
 
-var fs = require('fs');
-var path = require('path');
+const fs = require('fs/promises');
+const path = require('path');
+
+class Modules {
+    /**
+     * @api public
+     * @param id
+     */
+    static async import(id) {
+        if (module.import) {
+            return await module.import(id);
+        }
+        return { default: module.require(id) };
+    }
+
+    /**
+     * @api public
+     */
+    constructor() {
+        this._modules = getModules();
+    }
+
+    /**
+     * @api
+     * @param name
+     */
+    async import(name) {
+        return await Modules.import(path.join('..', 'modules', name));
+    }
+
+    /**
+     * @api public
+     */
+    async package(name) {
+        const modules = await this._modules;
+        const { default: pkg } = await this.import(path.join(modules[name], 'package.json'));
+        return pkg;
+    }
+
+    /**
+     * @api public
+     */
+    async list() {
+        const data = [];
+        const modules = await this._modules;
+        for (let name in modules) {
+            data.push(name);
+        }
+        return data;
+    }
+}
 
 module.exports = new Modules();
 
-function Modules() {
-    this._modules = getModules();
-}
-
-Modules.prototype.package = function(name, callback) {
-    const pkg = require(this._modules[name] + '/package.json');
-    callback(null, pkg);
-};
-
-Modules.prototype.list = function(callback) {
-    const data = [];
-    for (let name in this._modules) {
-        data.push(name);
-    }
-    callback(null, data);
-};
-
 // PRIVATE
 
-function getModules() {
+async function getModules() {
     const data = {};
-    const dir = path.dirname(__dirname) + '/modules';
-    const list = fs.readdirSync(dir);
+    const dir = path.join(path.dirname(__dirname), 'modules');
+    const list = await fs.readdir(dir);
     for (let name of list) {
         const path = dir + '/' + name;
-        const stat = fs.statSync(path);
+        const stat = await fs.stat(path);
         if (stat && stat.isDirectory()) {
             data[name] = path;
         }

@@ -1,9 +1,9 @@
 'use strict';
 
-var fs = require('fs');
-var tls = require('tls');
-var pty = require('node-pty');
-var Transform = require('stream').Transform;
+const fs = require('fs/promises');
+const tls = require('tls');
+const pty = require('node-pty');
+const Transform = require('stream').Transform;
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
@@ -11,21 +11,21 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('daemon', function* (options) {
+    whaler.on('daemon', async ctx => {
         let crl = undefined;
         try {
-            crl = yield fs.readFile.$call(null, '/etc/whaler/ssl/ca.crl')
+            crl = await fs.readFile('/etc/whaler/ssl/ca.crl');
         } catch (e) {}
 
-        const dir = options['dir'];
+        const dir = ctx.options['dir'];
         const cmd = whaler.path + '/bin/whaler';
         const opts = {
-            key:  yield fs.readFile.$call(null, '/etc/whaler/ssl/server.key'),
-            cert: yield fs.readFile.$call(null, '/etc/whaler/ssl/server.crt'),
+            key:  await fs.readFile('/etc/whaler/ssl/server.key'),
+            cert: await fs.readFile('/etc/whaler/ssl/server.crt'),
             ca: [
-                yield fs.readFile.$call(null, '/etc/whaler/ssl/ca.crt')
+                await fs.readFile('/etc/whaler/ssl/ca.crt')
             ],
             crl: crl,
             rejectUnauthorized: true,
@@ -33,14 +33,14 @@ function exports(whaler) {
         };
 
         try {
-            yield fs.stat.$call(null, dir);
+            await fs.stat(dir);
         } catch (e) {
-            yield fs.mkdir.$call(null, dir);
+            await fs.mkdir(dir);
         }
 
-        const daemon = tls.createServer(opts, (socket) => {
+        const daemon = tls.createServer(opts, socket => {
             if (socket.authorized) {
-                socket.once('data', (data) => {
+                socket.once('data', data => {
                     data = JSON.parse(data.toString());
 
                     const env = data['env'] || {};
@@ -78,7 +78,7 @@ function exports(whaler) {
                         }
                     };
 
-                    const exit = (code) => {
+                    const exit = code => {
                         socket.end();
                     };
 
@@ -94,55 +94,46 @@ function exports(whaler) {
             }
         });
 
-        daemon.initListeners = (cb) => {
-            whaler.$async(function* () {
-                yield initListeners.$call(null, whaler);
-            }, cb);
+        daemon.initListeners = async () => {
+            const listeners = [];
+            const { default: modules } = await whaler.fetch('modules');
+            const { default: plugins } = await whaler.fetch('plugins');
+
+            for (let name of await modules.list()) {
+                const module = await modules.import(name);
+                if (module['__daemon']) {
+                    listeners.push(module['__daemon']);
+                }
+            }
+
+            for (let name of await plugins.list()) {
+                try {
+                    const plugin = await plugins.import(name);
+                    if (plugin['__daemon']) {
+                        listeners.push(plugin['__daemon']);
+                    }
+                } catch (e) {}
+            }
+
+            const { default: docker } = await whaler.fetch('docker');
+            const stream = await docker.getEvents({
+                since: Math.floor(new Date().getTime() / 1000)
+            });
+
+            stream.setEncoding('utf8');
+            stream.on('data', data => {
+                data = JSON.parse(data.toString());
+
+                for (let listener of listeners) {
+                    listener(whaler, {
+                        type: 'events',
+                        data: data
+                    });
+                }
+            });
         };
 
-        return daemon;
+        ctx.result = daemon;
     });
 
-}
-
-/**
- * @param whaler
- */
-function* initListeners(whaler) {
-    const listeners = [];
-    const modules = whaler.get('modules');
-    const plugins = whaler.get('plugins');
-
-    for (let name of yield modules.list.$call(modules)) {
-        const module = whaler.require('./modules/' + name);
-        if (module['__daemon']) {
-            listeners.push(module['__daemon']);
-        }
-    }
-
-    for (let name of yield plugins.list.$call(plugins)) {
-        try {
-            const plugin = plugins.require(name);
-            if (plugin['__daemon']) {
-                listeners.push(plugin['__daemon']);
-            }
-        } catch (e) {}
-    }
-
-    const docker = whaler.get('docker');
-    const stream = yield docker.getEvents.$call(docker, {
-        since: Math.floor(new Date().getTime() / 1000)
-    });
-
-    stream.setEncoding('utf8');
-    stream.on('data', (data) => {
-        data = JSON.parse(data.toString());
-
-        for (let listener of listeners) {
-            listener(whaler, {
-                type: 'events',
-                data: data
-            });
-        }
-    });
 }

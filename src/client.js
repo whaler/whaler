@@ -3,7 +3,6 @@
 var fs = require('fs');
 var tls = require('tls');
 var path = require('path');
-var console = require('x-console');
 
 module.exports = client;
 

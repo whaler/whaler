@@ -1,16 +1,16 @@
 'use strict';
 
-var pkg = require('./package.json');
-var console = require('x-console');
+const pkg = require('./package.json');
 
 module.exports = cmd;
 
 /**
  * @param whaler
  */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name + ' [name] [path]')
         .description(pkg.description, {
             name: 'Application name',
@@ -18,22 +18,16 @@ function cmd(whaler) {
         })
         .option('-e, --env <ENV>', 'Application environment')
         .option('--config <CONFIG>', 'Config to use')
-        .action(function* (name, path, options) {
-            name = this.util.prepare('name', name);
-            path = this.util.prepare('path', path);
+        .action(async (name, path, options, util) => {
+            name = util.prepare('name', name);
+            path = util.prepare('path', path);
             if (options.config) {
-                options.config = this.util.prepare('path', options.config);
+                options.config = util.prepare('path', options.config);
             }
 
-            const app = yield whaler.$emit('init', {
-                name: name,
-                path: path,
-                env: options.env,
-                config: options.config
-            });
+            await whaler.emit('init', { name, path, ...util.filter(options, ['env', 'config']) });
 
-            console.log('');
-            console.info('[%s] An application with "%s" name created.', process.pid, name);
+            whaler.info('An application with "%s" name created.', name);
         });
 
 }

@@ -1,8 +1,8 @@
 'use strict';
 
-var fs = require('fs');
-var str2time = require('../../lib/str2time');
-var console = require('x-console');
+const fs = require('fs/promises');
+const util = require('util');
+const str2time = require('../../lib/str2time');
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
@@ -10,33 +10,33 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('start', function* (options) {
-        let appName = options['ref'];
+    whaler.on('start', async ctx => {
+        let appName = ctx.options['ref'];
         let serviceName = null;
 
-        if (options['init'] && !/^[a-z0-9-]+$/.test(appName)) {
+        if (ctx.options['init'] && !/^[a-z0-9-]+$/.test(appName)) {
             throw new Error('Application name "' + appName + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
         }
 
-        const parts = options['ref'].split('.');
+        const parts = ctx.options['ref'].split('.');
         if (2 == parts.length) {
             appName = parts[1];
             serviceName = parts[0];
         }
 
-        const docker = whaler.get('docker');
-        const storage = whaler.get('apps');
+        const { default: docker } = await whaler.fetch('docker');
+        const { default: storage } = await whaler.fetch('apps');
 
         let app;
         try {
-            app = yield storage.get.$call(storage, appName);
+            app = await storage.get(appName);
         } catch (e) {
-            if (options['init']) {
-                app = yield whaler.$emit('init', {
+            if (ctx.options['init']) {
+                app = await whaler.emit('init', {
                     name: appName,
-                    config: 'string' === typeof options['init'] ? options['init'] : undefined
+                    config: 'string' === typeof ctx.options['init'] ? ctx.options['init'] : undefined
                 });
             } else {
                 throw e;
@@ -51,7 +51,7 @@ function exports(whaler) {
         } else {
             services = Object.keys(app.config['data']['services']);
 
-            let containers = yield docker.listContainers.$call(docker, {
+            let containers = await docker.listContainers({
                 all: true,
                 filters: JSON.stringify({
                     name: [
@@ -60,10 +60,10 @@ function exports(whaler) {
                 })
             });
 
-            containers = containers.filter((data) => {
+            containers = containers.filter(data => {
                 const parts = data['Names'][0].substr(1).split('.');
                 return -1 == services.indexOf(parts[0]);
-            }).map((data) => {
+            }).map(data => {
                 const labels = data['Labels'] || {};
                 const parts = data['Names'][0].substr(1).split('.');
                 return Object.assign({
@@ -94,15 +94,14 @@ function exports(whaler) {
 
             let info = null;
             try {
-                info = yield container.inspect.$call(container);
+                info = await container.inspect();
             } catch (e) {}
 
             let needStart = true;
             if (info) {
                 if (info['State']['Running']) {
                     needStart = false;
-                    console.warn('');
-                    console.warn('[%s] Container "%s.%s" already running.', process.pid, name, appName);
+                    whaler.warn('Container "%s.%s" already running.', name, appName);
                 } else {
                     let waitMode = 'noninteractive';
                     if (info['Config']['Labels'] && info['Config']['Labels']['whaler.wait']) {
@@ -117,37 +116,34 @@ function exports(whaler) {
                     if ('interactive' === waitMode) {
                         if (!info['Config']['Tty']) {
                             needRebuild = true;
-                            console.warn('');
-                            console.warn('[%s] Rebuild container "%s.%s" to interactive mode.', process.pid, name, appName);
+                            whaler.warn('Rebuild container "%s.%s" to interactive mode.', name, appName);
                         }
                     } else {
                         if (info['Config']['Tty']) {
                             needRebuild = true;
-                            console.warn('');
-                            console.warn('[%s] Rebuild container "%s.%s" to non-interactive mode.', process.pid, name, appName);
+                            whaler.warn('Rebuild container "%s.%s" to non-interactive mode.', name, appName);
                         }
                     }
 
                     if (needRebuild) {
                         needStart = false;
-                        yield whaler.$emit('rebuild', {
+                        await whaler.emit('rebuild', {
                             ref: name + '.' + appName
                         });
                     }
                 }
 
             } else {
-                const result = yield whaler.$emit('create', {
+                const result = await whaler.emit('create', {
                     ref: name + '.' + appName
                 });
                 container = result[name];
             }
 
             if (needStart) {
-                console.info('');
-                console.info('[%s] Starting "%s.%s" container.', process.pid, name, appName);
+                whaler.info('Starting "%s.%s" container.', name, appName);
 
-                info = yield container.inspect.$call(container);
+                info = await container.inspect();
 
                 let wait = false;
                 if (info['Config']['Labels'] && info['Config']['Labels']['whaler.wait']) {
@@ -156,23 +152,23 @@ function exports(whaler) {
 
                 if (wait) {
                     let stream = null;
-                    let revertResize = function () {};
+                    let revertResize = () => {};
                     let attachStdin = info['Config']['AttachStdin'];
                     let tty = info['Config']['Tty'];
 
                     if (tty) {
-                        stream = yield container.attach.$call(container, {
+                        stream = await container.attach({
                             stream: true,
                             stdin: true,
                             stdout: true,
                             stderr: true
                         });
                         revertResize = docker.util.resizeTTY(container);
-                        yield container.start.$call(container);
+                        await container.start();
 
                     } else {
-                        yield container.start.$call(container);
-                        stream = yield container.logs.$call(container, {
+                        await container.start();
+                        stream = await container.logs({
                             follow: true,
                             stdout: true,
                             stderr: true,
@@ -180,162 +176,138 @@ function exports(whaler) {
                         });
                     }
 
-                    const revertPipe = pipe(whaler, stream, attachStdin);
+                    const revertPipe = await pipe(stream, attachStdin);
 
-                    whaler.before('SIGINT', function* () {
+                    whaler.before('SIGINT', async ctx => {
                         revertPipe();
                         revertResize();
                     });
 
-                    yield writeLogs.$call(null, docker, stream, wait, tty);
+                    await writeLogs(docker, stream, wait, tty);
 
                     revertPipe();
                     revertResize();
                 } else {
-                    yield container.start.$call(container);
+                    await container.start();
                 }
 
-                info = yield container.inspect.$call(container);
+                info = await container.inspect();
 
-                console.info('');
-                console.info('[%s] Container "%s.%s" started.', process.pid, name, appName);
+                whaler.info('Container "%s.%s" started.', name, appName);
             }
 
             containers[name] = container;
         }
 
-        return containers;
+        ctx.result = containers;
     });
 
-}
+    // PRIVATE
 
-/**
- * @param whaler
- * @param stream
- * @param attachStdin
- * @returns {Function}
- */
-function pipe(whaler, stream, attachStdin) {
-
-    let unpipeStream = function() {
-        if (stream) {
-            if (stream.end) {
-                stream.end();
-            }
-            if (stream.destroy) {
-                stream.destroy();
-            }
-        }
-    };
-
-    const CTRL_ALT_C = '\u001B\u0003';
-    const isRaw = process.isRaw;
-    const keyPress = function(key) {
-        if (key === CTRL_ALT_C) {
-            whaler.emit('SIGINT');
-        }
-    };
-
-    if (attachStdin) {
-        process.stdin.resume();
-        process.stdin.setRawMode(true);
-        process.stdin.pipe(stream);
-        process.stdin.on('data', keyPress);
-    }
-
-    return function revert() {
-        unpipeStream();
-
-        if (attachStdin) {
-            process.stdin.removeListener('data', keyPress);
-            process.stdin.unpipe(stream);
-            process.stdin.setRawMode(isRaw);
-            process.stdin.resume();
-            process.stdin.pause();
-        }
-    }
-}
-
-/**
- * @param docker
- * @param stream
- * @param wait
- * @param tty
- * @param callback
- */
-function writeLogs(docker, stream, wait, tty, callback) {
-    let timeoutId = setTimeout(() => {
-        callback(null);
-    }, wait);
-
-    let firstStr = true;
-    const stdout = {
-        write: (data) => {
-            if ('string' !== typeof data) {
-                data = data.toString('utf8');
-            }
-
-            if (firstStr) {
-                firstStr = false;
-                if (!isWhalerWait(data)) {
-                    if (!('\r\n' === data || '\n' === data)) {
-                        console.log('');
-                    }
+    const pipe = async (stream, attachStdin) => {
+        let unpipeStream = () => {
+            if (stream) {
+                if (stream.end) {
+                    stream.end();
+                }
+                if (stream.destroy) {
+                    stream.destroy();
                 }
             }
+        };
 
-            const sleepTime = processStdoutWrite(data);
-            if (null !== sleepTime) {
-                firstStr = true;
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => {
-                    callback(null);
-                }, sleepTime);
+        const CTRL_ALT_C = '\u001B\u0003';
+        const isRaw = process.isRaw;
+        const keyPress = (key) => {
+            if (key === CTRL_ALT_C) {
+                whaler.emit('SIGINT');
+            }
+        };
+
+        if (attachStdin) {
+            process.stdin.resume();
+            process.stdin.setRawMode(true);
+            process.stdin.pipe(stream);
+            process.stdin.on('data', keyPress);
+        }
+
+        return function revert() {
+            unpipeStream();
+
+            if (attachStdin) {
+                process.stdin.removeListener('data', keyPress);
+                process.stdin.unpipe(stream);
+                process.stdin.setRawMode(isRaw);
+                process.stdin.resume();
+                process.stdin.pause();
             }
         }
     };
 
-    if (tty) {
-        stream.setEncoding('utf8');
-        stream.on('data', stdout.write);
+    const writeLogs = util.promisify((docker, stream, wait, tty, callback) => {
+        let timeoutId = setTimeout(() => {
+            callback(null);
+        }, wait);
 
-    } else {
-        docker.modem.demuxStream(stream, stdout, stdout);
-    }
-}
+        let firstStr = true;
+        const stdout = {
+            write: data => {
+                if ('string' !== typeof data) {
+                    data = data.toString('utf8');
+                }
 
-/**
- * @param data
- * @returns {boolean}
- */
-function isWhalerWait(data) {
-    if (-1 !== data.indexOf('@whaler ready in') || -1 !== data.indexOf('@whaler wait')) {
-        return true;
-    }
+                if (firstStr) {
+                    firstStr = false;
+                    if (!isWhalerWait(data)) {
+                        if (!('\r\n' === data || '\n' === data)) {
+                            console.log('');
+                        }
+                    }
+                }
 
-    return false;
-}
+                const sleepTime = processStdoutWrite(data);
+                if (null !== sleepTime) {
+                    firstStr = true;
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => {
+                        callback(null);
+                    }, sleepTime);
+                }
+            }
+        };
 
-/**
- * @param data
- * @returns {*}
- */
-function processStdoutWrite(data) {
-    if (isWhalerWait(data)) {
-        const sleepTime = str2time(data.split('@whaler')[1].split('\n')[0].trim());
-        console.info('');
-        console.info('[%s] Waiting %ss to make sure container is started.', process.pid, sleepTime / 1000);
+        if (tty) {
+            stream.setEncoding('utf8');
+            stream.on('data', stdout.write);
 
-        if (-1 !== data.indexOf('@whaler ready in')) {
-            console.warn('');
-            console.warn('[%s] "@me ready in" is deprecated, please use "@whaler wait" instead.', process.pid);
+        } else {
+            docker.modem.demuxStream(stream, stdout, stdout);
+        }
+    });
+
+    const isWhalerWait = data => {
+        if (-1 !== data.indexOf('@whaler ready in') || -1 !== data.indexOf('@whaler wait')) {
+            return true;
+        }
+        return false;
+    };
+
+    const processStdoutWrite = data => {
+        if (isWhalerWait(data)) {
+            const sleepTime = str2time(data.split('@whaler')[1].split('\n')[0].trim());
+            whaler.info('Waiting %ss to make sure container is started.', sleepTime / 1000);
+
+            if (-1 !== data.indexOf('@whaler ready in')) {
+                whaler.warn('"@me ready in" is deprecated, please use "@whaler wait" instead.');
+            }
+
+            return sleepTime;
+
+        } else {
+            process.stdout.write(data);
         }
 
-        return sleepTime;
+        return null;
+    };
 
-    } else {
-        process.stdout.write(data);
-    }
-
-    return null;
 }

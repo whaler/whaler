@@ -1,28 +1,24 @@
 'use strict';
 
-var pkg = require('./package.json');
-var console = require('x-console');
-var colors = require('colors/safe');
+const pkg = require('./package.json');
+const colors = require('colors/safe');
 
 module.exports = cmd;
 
-/**
- * @param whaler
- */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name)
         .description(pkg.description)
         .option('-f, --format <FORMAT>', 'The output format (txt or json) [default: "txt"]')
-        .action(function* (options) {
-            const response = yield whaler.$emit('list');
+        .action(async options => {
+            const response = await whaler.emit('list');
 
             if ('json' == options.format) {
-                this.ignoreEndLine(true);
                 console.log(JSON.stringify(response, null, 2));
             } else {
-                const table = whaler.get('cli-table')({
+                const table = (await whaler.fetch('cli-table')).default({
                     head: [ 'Application name', 'Env', 'Status', 'Path' ]
                 });
 
@@ -42,10 +38,9 @@ function cmd(whaler) {
 
                     data.push([app.name, app.env, status.join('|'), app.path || '']);
                 }
-
-                console.log('');
-                console.log(table.render(data));
+                console.log('\n' + table.render(data) + '\n');
             }
-        });
+        })
+        .ignoreEndLine(true);
 
 }

@@ -6,28 +6,34 @@ module.exports.__cmd = require('./cmd');
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('status', function* (options) {
-        const docker = whaler.get('docker');
-        const storage = whaler.get('apps');
-        const app = yield storage.get.$call(storage, options['name']);
+    whaler.on('status', async ctx => {
+        const { default: docker } = await whaler.fetch('docker');
+
+        let app;
+        if (ctx.options['app']) {
+            app = ctx.options['app'];
+        } else {
+            const { default: storage } = await whaler.fetch('apps');
+            app = await storage.get(ctx.options['name']);
+        }
 
         const services = Object.keys(app.config['data']['services']);
 
-        let containers = yield docker.listContainers.$call(docker, {
+        let containers = await docker.listContainers({
             all: true,
             filters: JSON.stringify({
                 name: [
-                    docker.util.nameFilter(options['name'])
+                    docker.util.nameFilter(ctx.options['name'])
                 ]
             })
         });
 
-        containers = containers.filter((data) => {
+        containers = containers.filter(data => {
             const parts = data['Names'][0].substr(1).split('.');
             return -1 == services.indexOf(parts[0]);
-        }).map((data) => {
+        }).map(data => {
             const labels = data['Labels'] || {};
             const parts = data['Names'][0].substr(1).split('.');
             return Object.assign({
@@ -52,13 +58,13 @@ function exports(whaler) {
 
         const response = [];
         for (let name of services) {
-            const container = docker.getContainer(name + '.' + options['name']);
+            const container = docker.getContainer(name + '.' + ctx.options['name']);
 
             let ip = null;
             let status = 'NOT CREATED';
 
             try {
-                const info = yield container.inspect.$call(container);
+                const info = await container.inspect();
                 if (info['State']['Running']) {
                     status = 'ON';
                     ip = info['NetworkSettings']['Networks']['bridge']['IPAddress'];
@@ -75,7 +81,7 @@ function exports(whaler) {
             });
         }
 
-        return response;
+        ctx.result = response;
     });
 
 }

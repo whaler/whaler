@@ -1,28 +1,26 @@
 'use strict';
 
-var console = require('x-console');
-
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
 
 /**
  * @param whaler
  */
-function exports(whaler) {
+async function exports (whaler) {
 
-    whaler.on('stop', function* (options) {
-        let appName = options['ref'];
+    whaler.on('stop', async ctx => {
+        let appName = ctx.options['ref'];
         let serviceName = null;
 
-        const parts = options['ref'].split('.');
+        const parts = ctx.options['ref'].split('.');
         if (2 == parts.length) {
             appName = parts[1];
             serviceName = parts[0];
         }
 
-        const docker = whaler.get('docker');
-        const storage = whaler.get('apps');
-        const app = yield storage.get.$call(storage, appName);
+        const { default: docker } = await whaler.fetch('docker');
+        //const { default: storage } = await whaler.fetch('apps');
+        //const app = await storage.get(appName);
         const containers = {};
         const services = [];
 
@@ -30,7 +28,7 @@ function exports(whaler) {
             services.push(serviceName);
 
         } else {
-            const containers = yield docker.listContainers.$call(docker, {
+            const containers = await docker.listContainers({
                 all: false,
                 filters: JSON.stringify({
                     name: [
@@ -48,26 +46,21 @@ function exports(whaler) {
         for (let name of services) {
             const container = docker.getContainer(name + '.' + appName);
 
-            const info = yield container.inspect.$call(container);
+            const info = await container.inspect();
 
             if (!info['State']['Running']) {
-                console.warn('');
-                console.warn('[%s] Container "%s.%s" already stopped.', process.pid, name, appName);
+                whaler.warn('Container "%s.%s" already stopped.', name, appName);
 
             } else {
-                console.info('');
-                console.info('[%s] Stopping "%s.%s" container.', process.pid, name, appName);
-
-                yield container.stop.$call(container, {});
-
-                console.info('');
-                console.info('[%s] Container "%s.%s" stopped.', process.pid, name, appName);
+                whaler.info('Stopping "%s.%s" container.', name, appName);
+                await container.stop({});
+                whaler.info('Container "%s.%s" stopped.', name, appName);
             }
 
             containers[name] = container;
         }
 
-        return containers;
+        ctx.result = containers;
     });
 
 }

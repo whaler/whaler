@@ -1,27 +1,24 @@
 'use strict';
 
-var pkg = require('./package.json');
+const pkg = require('./package.json');
 
 module.exports = cmd;
 
 /**
  * @param whaler
  */
-function cmd(whaler) {
+async function cmd (whaler) {
 
-    whaler.get('cli')
+    (await whaler.fetch('cli')).default
+
         .command(pkg.name + ' [ref]')
         .description(pkg.description, {
             ref: 'Application or container name'
         })
         .option('--purge', 'Completely remove a [ref] and the associated configuration files')
-        .action(function* (ref, options) {
-            ref = this.util.prepare('ref', ref);
-
-            yield whaler.$emit('remove', {
-                ref: ref,
-                purge: options.purge
-            });
+        .action(async (ref, options, util) => {
+            ref = util.prepare('ref', ref);
+            await whaler.emit('remove', { ref, ...util.filter(options, ['purge']) });
         });
 
 }

@@ -1,8 +1,8 @@
 'use strict';
 
-var fs = require('fs');
-var colors = require('colors/safe');
-var docker = require('./docker');
+const fs = require('fs');
+const colors = require('colors/safe');
+const docker = require('./docker');
 
 module.exports = header();
 
