@@ -17,7 +17,7 @@ if (-1 === index) {
 whaler.on('deprecate', async ctx => {
     if ('ON' != process.env.WHALER_NO_DEPRECATION) {
         const { message } = ctx.options;
-        console.log('\n' + message);
+        process.stderr.write('\n' + message + '\n');
     }
 });
 

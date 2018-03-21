@@ -26,18 +26,27 @@ async function exports (whaler) {
         // const { default: storage } = await whaler.fetch('apps');
         // const app = await storage.get(appName);
 
-        await docker.listContainers({
-            all: false,
-            filters: JSON.stringify({
-                name: [
-                    docker.util.nameFilter(appName)
-                ]
-            })
-        });
+        // await docker.listContainers({
+        //     all: false,
+        //     filters: JSON.stringify({
+        //         name: [
+        //             docker.util.nameFilter(appName)
+        //         ]
+        //     })
+        // });
 
-        const serviceContainer = docker.getContainer(serviceName + '.' + appName);
-        const info = await serviceContainer.inspect();
         const attachStdin = ctx.options['stdin'];
+        const serviceContainer = docker.getContainer(serviceName + '.' + appName);
+
+        let info;
+        try {
+            info = await serviceContainer.inspect();
+        } catch (e) {
+            await whaler.emit('create', {
+                ref: serviceName + '.' + appName
+            });
+            info = await serviceContainer.inspect();
+        }
 
         if ('string' === typeof ctx.options['cmd']) {
             const hasEntrypoint = !!info['Config']['Entrypoint'] && info['Config']['Entrypoint'].length && ctx.options['entrypoint'];
