@@ -49,7 +49,7 @@ async function cmd (whaler) {
                 console.log('\n' + table.render(data) + '\n');
 
                 if (message) {
-                    console.log('\n  ' + color('*') + ' Volatile container, will be removed on app rebuild.\n');
+                    console.log('  ' + colors['red']('*') + ' Volatile container, will be removed on app rebuild.\n');
                 }
             }
 
