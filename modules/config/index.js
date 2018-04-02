@@ -72,7 +72,7 @@ async function exports (whaler) {
 
         return {
             file: file,
-            data: prepareConfig(data, app.env)
+            data: await prepareConfig(data, app.env, (opts) => loadConfig(app, opts))
         };
     };
 
@@ -103,7 +103,7 @@ async function exports (whaler) {
  * @param env
  * @returns {Object}
  */
-function prepareConfig (config, env) {
+async function prepareConfig (config, env, loader) {
     config = config || {};
     config = prepareConfigEnv(config, env);
     if (config['services'] || null) {
@@ -112,6 +112,15 @@ function prepareConfig (config, env) {
         for (let key in services) {
             if (!/^[a-z0-9-]+$/.test(key)) {
                 throw new Error('Service name "' + key + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
+            }
+
+            if (services[key]['extends']) {
+                const ex = await loader({
+                    file: path.resolve(services[key]['extends']['file'])
+                });
+                const data = ex['data']['services'][services[key]['extends']['service']];
+                services[key] = util.extend({}, data, services[key]);
+                delete services[key]['extends'];
             }
 
             if (services[key]['extend']) {
