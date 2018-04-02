@@ -259,8 +259,9 @@ async function exports (whaler) {
                 if (firstStr) {
                     firstStr = false;
                     if (!isWhalerWait(data)) {
-                        if (!('\r\n' === data || '\n' === data)) {
-                            console.log('');
+                        const line = data.split('\n')[0].trim();
+                        if ('' !== line) {
+                            process.stdout.write('\n');
                         }
                     }
                 }
