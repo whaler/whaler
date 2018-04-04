@@ -153,16 +153,16 @@ describe('modules/config', () => {
                         '    foo: bar',
                         '    ~dev,test:',
                         '        foo: baz',
+                        '~extra:',
+                        '    z:',
+                        '        foo: extra',
                         'y:',
                         '    foo: bar',
                         '~prod:',
                         '    y:',
                         '        foo: baz',
                         '    z:',
-                        '        foo: qux',
-                        '~extra:',
-                        '    z:',
-                        '        foo: extra'
+                        '        foo: qux'
                     ].join('\n');
                 }
 
@@ -203,7 +203,7 @@ describe('modules/config', () => {
             setEnv: 'dev,extra',
             update: true
         });
-        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"y":{"foo":"bar"},"z":{"foo":"extra"},"services":{}}}';
+        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"z":{"foo":"extra"},"y":{"foo":"bar"},"services":{}}}';
         assert.equal(JSON.stringify(config), expected);
 
         config = await whaler.emit('config', {
@@ -211,7 +211,7 @@ describe('modules/config', () => {
             setEnv: 'prod,extra',
             update: true
         });
-        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"bar"},"y":{"foo":"baz"},"z":{"foo":"extra"},"services":{}}}';
+        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"bar"},"z":{"foo":"qux"},"y":{"foo":"baz"},"services":{}}}';
         assert.equal(JSON.stringify(config), expected);
 
         config = await whaler.emit('config', {
@@ -219,7 +219,7 @@ describe('modules/config', () => {
             setEnv: 'test,extra',
             update: true
         });
-        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"y":{"foo":"bar"},"z":{"foo":"extra"},"services":{}}}';
+        expected = '{"file":"/app/whaler.yml","data":{"x":{"foo":"baz"},"z":{"foo":"extra"},"y":{"foo":"bar"},"services":{}}}';
         assert.equal(JSON.stringify(config), expected);
 
         revert();

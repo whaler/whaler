@@ -245,7 +245,16 @@ function prepareConfigEnv (config, env) {
                 const parts = key.split('~')[1].split(',');
                 for (let e of env) {
                     if (parts.includes(e)) {
-                        config = util.extend({}, config, config[key]);
+                        const tmpConfig = {};
+                        for (let index in config) {
+                            if (index == key) {
+                                util.extend(tmpConfig, config[key]);
+                            } else if (!tmpConfig.hasOwnProperty(index)) {
+                                tmpConfig[index] = config[index];
+                            }
+                        }
+                        config = tmpConfig;
+                        //config = util.extend({}, config, config[key]);
                     }
                 }
                 delete config[key];
