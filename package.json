@@ -15,7 +15,7 @@
     "fig"
   ],
   "license": "MIT",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "main": "index.js",
   "bin": {
     "whaler": "bin/whaler"
@@ -26,7 +26,7 @@
   "dependencies": {
     "cli-table": "^0.3.1",
     "co": "^4.6.0",
-    "colors": "^1.1.2",
+    "colors": "^1.2.1",
     "diff": "^3.5.0",
     "dockerode": "^2.5.4",
     "fs.promises": "^0.1.1",
@@ -36,7 +36,7 @@
     "nedb": "^1.8.0",
     "nmpm": "^1.0.2",
     "node-pty": "^0.7.4",
-    "request": "^2.83.0",
+    "request": "^2.85.0",
     "stack-trace": "0.0.10",
     "string-argv": "0.0.2",
     "tar-fs": "^1.16.0",
@@ -46,8 +46,8 @@
   },
   "devDependencies": {
     "chai": "^4.1.2",
-    "mocha": "^5.0.2",
-    "rewire": "^3.0.2"
+    "mocha": "^5.1.0",
+    "rewire": "^4.0.0"
   },
   "optionalDependencies": {},
   "repository": {
