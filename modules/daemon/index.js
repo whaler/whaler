@@ -88,7 +88,7 @@ async function exports (whaler) {
                     socket.on('close', () => {
                         socket.unpipe(resize).unpipe(xterm).unpipe(socket);
                         xterm.removeListener('exit', exit);
-                        xterm.kill();
+                        xterm.kill('SIGINT');
                     });
                 });
             }
