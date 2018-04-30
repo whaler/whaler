@@ -36,7 +36,7 @@ async function cmd (whaler) {
 
             const container = await whaler.emit('logs', { ref, since, ...util.filter(options, ['tail']) });
 
-            whaler.before('SIGINT', async ctx => {
+            whaler.before('kill', async ctx => {
                 await container.exit();
             });
 

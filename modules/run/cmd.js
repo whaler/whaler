@@ -36,8 +36,9 @@ async function cmd (whaler) {
                 ...util.filter(options, ['env', 'detach', 'entrypoint'])
             });
 
-            whaler.before('SIGINT', async () => {
+            whaler.before('kill', async ctx => {
                 await container.exit();
+                process.stdout.write('exit');
             });
 
             const data = await container.run();
@@ -50,7 +51,7 @@ async function cmd (whaler) {
                 if (CTRL_ALT_C !== data['StatusCode']) {
                     await container.exit();
                 }
-                process.exit(data['StatusCode']);
+                process.exitCode = data['StatusCode'];
             }
         })
         .ignoreEndLine(true);

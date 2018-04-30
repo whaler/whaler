@@ -28,6 +28,16 @@ class Whaler extends Application {
     /**
      * @api public
      */
+    async kill(signal = 'SIGINT') {
+        try {
+            //process.exitCode = 0;
+            await this.emit('kill', { signal });
+        } catch (e) {}
+    }
+
+    /**
+     * @api public
+     */
     async init() {
         // base
         await mkdir('/etc/whaler');
@@ -42,20 +52,16 @@ class Whaler extends Application {
         await mkdir('/var/lib/whaler/bin');
         await fs.writeFile('/var/lib/whaler/bin/bridge', await fs.readFile(__dirname + '/bin/bridge'), { mode: '755' });
 
-        // SIGINT
-        this.on('SIGINT', () => {
+        // kill handler
+        this.on('kill', async ctx => {
+            await this.emit(ctx.options['signal']);
             process.stdout.write('\n');
             process.exit();
         });
-        process.on('SIGINT', () => {
-            this.emit('SIGINT');
-        });
-        //process.stdin.on('data', (key) => {
-        //    // Ctrl+C
-        //    if (key === '\u0003') {
-        //        this.emit('SIGINT');
-        //    }
-        //});
+
+        process.on('SIGINT', () => { this.kill('SIGINT'); });
+        process.on('SIGHUP', () => { this.kill('SIGHUP'); });
+
         process.stdin.setEncoding('utf8');
         process.stdin.pause();
     }

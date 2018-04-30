@@ -24,7 +24,7 @@ async function cmd (whaler) {
                 dir: process.env.WHALER_DAEMON_APPS || process.env.HOME + '/apps'
             });
 
-            whaler.before('SIGINT', async ctx => {
+            whaler.before('kill', async ctx => {
                 daemon.close();
             });
 

@@ -180,7 +180,7 @@ async function exports (whaler) {
         const isRaw = process.isRaw;
         const keyPress = (key) => {
             if (key === CTRL_ALT_C) {
-                whaler.emit('SIGINT');
+                whaler.kill('SIGINT');
             }
         };
 
