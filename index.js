@@ -108,8 +108,7 @@ class Whaler extends Application {
         if (['apps', 'vars'].includes(id)) {
             if (!promisifyCache[id]) {
                 const imported = await this.import('./src/' + id);
-                imported.default = promisify(imported.default);
-                promisifyCache[id] = imported;
+                promisifyCache[id] = { default: promisify(imported.default) };
             }
             return promisifyCache[id];
         }
