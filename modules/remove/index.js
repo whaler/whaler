@@ -1,6 +1,6 @@
 'use strict';
 
-const fs = require('fs/promises');
+const fs = require('fs').promises;
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');

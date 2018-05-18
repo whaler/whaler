@@ -1,6 +1,6 @@
 'use strict';
 
-const fs = require('fs/promises');
+const fs = require('fs').promises;
 const util = require('util');
 const str2time = require('../../lib/str2time');
 

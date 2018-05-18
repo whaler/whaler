@@ -1,6 +1,6 @@
 'use strict';
 
-const fs = require('fs/promises');
+const fs = require('fs').promises;
 const tls = require('tls');
 const pty = require('node-pty');
 const Transform = require('stream').Transform;

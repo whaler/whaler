@@ -29,7 +29,7 @@
     "colors": "^1.2.5",
     "diff": "^3.5.0",
     "dockerode": "^2.5.5",
-    "fs.promises": "^0.1.1",
+    "fs.promises": "^0.1.2",
     "js-yaml": "^3.11.0",
     "koa-compose": "^4.0.0",
     "mkdirp": "^0.5.1",

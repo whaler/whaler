@@ -3,7 +3,7 @@
 require('./lib/console');
 require('./lib/polyfill');
 
-const fs = require('fs/promises');
+const fs = require('fs').promises;
 const parseEnv = require('./lib/parse-env');
 const promisify = require('./lib/promisify');
 const Application = require('./lib/application');
