@@ -482,7 +482,8 @@ async function exports (whaler) {
                 }
             }
 
-            const container = await docker.createContainer(createOpts);
+            //const container = await docker.createContainer(createOpts);
+            const container = await whaler.emit('create:container', createOpts);
 
             if (whalerNetwork) {
                 await whalerNetwork.connect({
@@ -505,6 +506,12 @@ async function exports (whaler) {
         }
 
         ctx.result = containers;
+    });
+
+    // TODO: experimental
+    whaler.on('create:container', async ctx => {
+        const { default: docker } = await whaler.fetch('docker');
+        ctx.result = await docker.createContainer(ctx.options);
     });
 
 }
