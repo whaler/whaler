@@ -40,6 +40,11 @@ async function exports (whaler) {
         }
     });
 
+    // TODO: experimental
+    whaler.on('config:prepare', async ctx => {
+        ctx.result = await prepareConfig(ctx.options['config'], ctx.options['app'].env, opts => loadConfig(app, opts));
+    });
+
     const loadConfig = async (app, options) => {
         let data;
         const vars = await prepareVars(app, options);
@@ -72,7 +77,11 @@ async function exports (whaler) {
 
         return {
             file: file,
-            data: await prepareConfig(data, app.env, (opts) => loadConfig(app, opts))
+            //data: await prepareConfig(data, app.env, (opts) => loadConfig(app, opts))
+            data: await whaler.emit('config:prepare', {
+                app: app,
+                config: data
+            })
         };
     };
 
@@ -200,7 +209,7 @@ async function prepareConfig (config, env, loader) {
                 services[key]['wait'] = services[key]['wait'] + 's';
             }
 
-            // experimental
+            // TODO: experimental
             if (services[key].hasOwnProperty('scale')) {
                 if (services[key]['scale']) {
                     scale[key] = services[key]['scale'];
@@ -209,7 +218,7 @@ async function prepareConfig (config, env, loader) {
             }
         }
 
-        // experimental
+        // TODO: experimental
         if (Object.keys(scale).length) {
             const newServices = {};
             for (let key in services) {
