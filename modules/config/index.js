@@ -196,10 +196,10 @@ async function prepareConfig (config, env, loader) {
             if (services[key]['env'] && !Array.isArray(services[key]['env'])) {
                 const env = [];
                 for (let e in services[key]['env']) {
-                    if (services[key]['env'][e]) {
-                        env.push(e + '=' + services[key]['env'][e]);
-                    } else {
+                    if ('object' == typeof services[key]['env'][e]) {
                         env.push(e);
+                    } else {
+                        env.push(e + '=' + services[key]['env'][e]);
                     }
                 }
                 services[key]['env'] = env;
