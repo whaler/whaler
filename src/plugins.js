@@ -21,6 +21,7 @@ class Plugins extends Manager {
     constructor() {
         super('whaler-plugin', {
             opts: {
+                'audit': false,
                 'loglevel': 'error',
                 'package-lock': false,
                 'prefix': '/var/lib/whaler/plugins'

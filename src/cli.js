@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('path');
+const format = require('util').format;
 const cli = require('x-commander/extra');
 const pkg = require('../package.json');
 const deprecate = require('../lib/deprecate');
@@ -9,7 +10,6 @@ const deprecate = require('../lib/deprecate');
 const $ = require('x-node');
 
 cli.l10n({
-    'Usage:': 'Usage:' + '\n\n   ',
     'output usage information': 'Output usage information',
     'output the version number': 'Display this application version'
 });
@@ -86,7 +86,6 @@ cli.Command.prototype.ignoreEndLine = function(status) {
 
 cli.Command.prototype._action = cli.Command.prototype.action;
 cli.Command.prototype.action = function(fn) {
-
     const done = err => {
         if (err) {
             console.error('\n[%s] %s\n', process.pid, err.message);
@@ -117,6 +116,11 @@ cli.Command.prototype.action = function(fn) {
 };
 
 cli._name = pkg.name;
+
+cli._printer.error = function(...args) {
+    throw new Error(format.apply(null, args));
+};
+
 try {
     const dev = require('../dev.json');
     cli.version(dev.version + (dev.sha ? ' ' + dev.sha.substr(0, 7) : ''));
