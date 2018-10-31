@@ -191,30 +191,37 @@ async function exports (whaler) {
                 pull = config['build']['pull'];
             }
 
+            let buildContext = config['build'] || null;
+
             if (config['dockerfile']) {
-                let file = null;
-
-                let context = config['build'] || null;
-                if ('string' === typeof context && !path.isAbsolute(context)) {
-                    context = path.join(path.dirname(appConfig['file']), path.normalize(context));
+                if (!buildContext) {
+                    buildContext = [
+                        { Dockerfile: config['dockerfile'] }
+                    ];
+                } else if ('string' === typeof buildContext) {
+                    buildContext = [
+                        buildContext,
+                        { Dockerfile: config['dockerfile'] }
+                    ];
+                } else if (Array.isArray(buildContext)) {
+                    buildContext.push({ Dockerfile: config['dockerfile'] });
                 } else {
-                    context = null;
+                    let dockerfile = 'Dockerfile';
+                    if ('string' === typeof buildContext['dockerfile']) {
+                        dockerfile = buildContext['dockerfile'];
+                    }
+                    if (!buildContext['context']) {
+                        buildContext['context'] = [];
+                    }
+                    buildContext['context'][dockerfile] = { Dockerfile: config['dockerfile'] };
                 }
-                file = await docker.createTarPack({
-                    context: context,
-                    dockerfile: config['dockerfile']
-                });
+            }
 
-                await docker.followBuildImage(file, {
-                    pull: pull,
-                    t: createOpts['Image']
-                });
-
-            } else if (config['build']) {
+            if (buildContext) {
                 let file = null;
                 let dockerfile = null;
-                if ('string' === typeof config['build']) {
-                    let build = config['build'];
+                if ('string' === typeof buildContext) {
+                    let build = buildContext;
                     if (build && !path.isAbsolute(build)) {
                         build = path.join(path.dirname(appConfig['file']), path.normalize(build));
                     }
@@ -222,13 +229,13 @@ async function exports (whaler) {
 
                 } else {
                     let context = null;
-                    if (Array.isArray(config['build'])) {
-                        context = config['build'];
+                    if (Array.isArray(buildContext)) {
+                        context = buildContext;
 
                     } else {
-                        context = config['build']['context'] || null;
-                        if ('string' === typeof config['build']['dockerfile']) {
-                            dockerfile = config['build']['dockerfile'];
+                        context = buildContext['context'] || null;
+                        if ('string' === typeof buildContext['dockerfile']) {
+                            dockerfile = buildContext['dockerfile'];
                         }
                     }
 
@@ -240,6 +247,7 @@ async function exports (whaler) {
                         if (!path.isAbsolute(context)) {
                             context = path.join(path.dirname(appConfig['file']), path.normalize(context));
                         }
+
                     } else if (Array.isArray(context)) {
                         for (let i = 0; i < context.length; i++) {
                             if ('string' === typeof context[i] && !path.isAbsolute(context[i])) {
@@ -249,7 +257,8 @@ async function exports (whaler) {
                     }
 
                     file = await docker.createTarPack({
-                        context: context
+                        context: context,
+                        dockerfile: dockerfile
                     });
                 }
 
@@ -318,6 +327,8 @@ async function exports (whaler) {
                     }
                 }
                 createOpts['Cmd'] = config['cmd'];
+            } else if (info['Config']['Cmd']) {
+                createOpts['Cmd'] = info['Config']['Cmd'];
             }
 
             let volumes = [];

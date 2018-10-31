@@ -15,7 +15,7 @@
     "fig"
   ],
   "license": "MIT",
-  "version": "0.5.2",
+  "version": "0.5.3-dev",
   "main": "index.js",
   "bin": {
     "whaler": "bin/whaler"
@@ -24,28 +24,29 @@
     "node": ">=8.9"
   },
   "dependencies": {
+    "@zeit/dockerignore": "^0.0.3",
     "cli-table": "^0.3.1",
     "co": "^4.6.0",
-    "colors": "^1.3.1",
+    "colors": "^1.3.2",
     "diff": "^3.5.0",
-    "dockerode": "^2.5.5",
+    "dockerode": "^2.5.7",
     "fs.promises": "^0.1.2",
     "js-yaml": "^3.12.0",
     "koa-compose": "^4.1.0",
     "mkdirp": "^0.5.1",
     "nedb": "^1.8.0",
     "nmpm": "^1.0.2",
-    "node-pty": "^0.7.6",
+    "node-pty": "^0.7.8",
     "request": "^2.88.0",
     "stack-trace": "^0.0.10",
     "string-argv": "^0.1.1",
     "tar-fs": "^1.16.3",
-    "tar-stream": "^1.6.1",
-    "x-commander": "^0.2.2",
+    "tar-stream": "^1.6.2",
+    "x-commander": "^0.2.4",
     "x-node": "^0.1.0"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
+    "chai": "^4.2.0",
     "mocha": "^5.2.0",
     "rewire": "^4.0.1"
   },
