@@ -104,7 +104,7 @@ async function exports (whaler) {
                 const volumesList = await docker.listVolumes({
                     filters: JSON.stringify({
                         name: [
-                            '^whaler_vlm[\.]{1}' + appName + '[\.]{1}[a-z0-9\-]+$'
+                            '^whaler_vlm[\.]{1}' + appName + '[\.]{1}.+$'
                         ]
                     })
                 });
