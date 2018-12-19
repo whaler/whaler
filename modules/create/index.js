@@ -256,21 +256,16 @@ async function exports (whaler) {
                         }
                     }
 
-                    file = await docker.createTarPack({
-                        context: context,
-                        dockerfile: dockerfile
-                    });
+                    file = await docker.createTarPack({ context, dockerfile });
                 }
 
-                await docker.followBuildImage(file, {
-                    pull: pull,
-                    t: createOpts['Image'],
-                    dockerfile: dockerfile
-                });
+                const authconfig = await whaler.emit('create:authconfig', createOpts);
+                await docker.followBuildImage(file, { pull, dockerfile, authconfig, t: createOpts['Image'] });
 
             } else {
                 try {
-                    await docker.followPull(createOpts['Image']);
+                    const authconfig = await whaler.emit('create:authconfig', createOpts);
+                    await docker.followPull(createOpts['Image'], { authconfig });
                 } catch (e) {}
             }
 
@@ -404,7 +399,7 @@ async function exports (whaler) {
                                     throw new Error('Application volume name "' + arr[0] + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
                                 }
 
-                                arr[0] = 'whaler_vlm.' + appName + '.' + arr[0];
+                                arr[0] = 'whaler_vlm.' + appName + '.' + (volumeCfg['name'] || arr[0]);
 
                                 volumeCfg['labels'] = volumeCfg['labels'] || {};
                                 for (let l in volumeCfg['labels']) {
@@ -523,6 +518,21 @@ async function exports (whaler) {
     whaler.on('create:container', async ctx => {
         const { default: docker } = await whaler.fetch('docker');
         ctx.result = await docker.createContainer(ctx.options);
+    });
+
+    // TODO: experimental
+    whaler.on('create:authconfig', async ctx => {
+        try {
+            const { default: config } = await whaler.import(process.env.HOME + '/.docker/config.json');
+
+            const serveraddress = ctx.options['Image'].split('/')[0];
+            if (config['auths'][serveraddress]) {
+                if (config['auths'][serveraddress]['auth']) {
+                    let [ username, password ] = Buffer.from(config['auths'][serveraddress]['auth'], 'base64').toString().split(':');
+                    ctx.result = { username, password, serveraddress };
+                }
+            }
+        } catch (e) {}
     });
 
 }
