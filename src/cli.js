@@ -110,6 +110,7 @@ cli.Command.prototype.action = function(fn) {
             } catch (e) {
                 err = e;
             }
+            await Promise.resolve();
             done(err);
         });
     }
