@@ -532,7 +532,9 @@ async function exports (whaler) {
                     ctx.result = { username, password, serveraddress };
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            ctx.error = e;
+        }
     });
 
 }
