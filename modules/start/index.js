@@ -36,7 +36,7 @@ async function exports (whaler) {
             if (ctx.options['init']) {
                 app = await whaler.emit('init', {
                     name: appName,
-                    config: 'string' === typeof ctx.options['init'] ? ctx.options['init'] : undefined
+                    ...ctx.options['init']
                 });
             } else {
                 throw e;

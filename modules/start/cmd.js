@@ -15,12 +15,24 @@ async function cmd (whaler) {
         .description(pkg.description, {
             ref: 'Application or container name'
         })
-        .option('--init [CONFIG]', 'Initialize application if not exist yet')
+        .option('--init [INIT]', 'Initialize application if not exist yet.')
         .action(async (ref, options, util) => {
             ref = util.prepare('ref', ref);
-            if (options.init && 'string' === typeof options.init) {
-                options.init = util.prepare('path', options.init);
+
+            if (options.init) {
+                if ('string' === typeof options.init) {
+                    let [ config, env ] = options.init.split(/[~]+/);
+
+                    if (config) {
+                        config = util.prepare('path', config);
+                    }
+
+                    options.init = { config, env };
+                } else {
+                    options.init = {};
+                }
             }
+
             await whaler.emit('start', { ref, ...util.filter(options, ['init']) });
         });
 
