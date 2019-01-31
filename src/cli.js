@@ -88,7 +88,7 @@ cli.Command.prototype._action = cli.Command.prototype.action;
 cli.Command.prototype.action = function(fn) {
     const done = err => {
         if (err) {
-            console.error('\n[%s] %s\n', process.pid, err.message);
+            console.error('\n[%s] %s\n', process.pid, err.message || err);
         } else if (true !== this.__ignoreEndLine) {
             console.log('');
         }
