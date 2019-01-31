@@ -186,11 +186,6 @@ async function exports (whaler) {
                 imageId = info['Id'];
             } catch (e) {}
 
-            let pull = true;
-            if ('object' === typeof config['build'] && config['build'].hasOwnProperty('pull')) {
-                pull = config['build']['pull'];
-            }
-
             let buildContext = config['build'] || null;
 
             if (config['dockerfile']) {
@@ -257,6 +252,11 @@ async function exports (whaler) {
                     }
 
                     file = await docker.createTarPack({ context, dockerfile });
+                }
+
+                let pull = true;
+                if ('object' === typeof config['build'] && config['build'].hasOwnProperty('pull')) {
+                    pull = config['build']['pull'];
                 }
 
                 const authconfig = await whaler.emit('create:authconfig', createOpts);
