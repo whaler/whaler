@@ -259,8 +259,23 @@ async function exports (whaler) {
                     pull = config['build']['pull'];
                 }
 
+                let buildargs = null;
+                if ('object' === typeof config['build'] && config['build'].hasOwnProperty('args')) {
+                    buildargs = {};
+                    for (let arg of config['build']['args']) {
+                        const arr = arg.split('=');
+                        buildargs[arr[0]] = arr[1];
+                    }
+                    buildargs = JSON.stringify(buildargs);
+                }
+
+                let target = null;
+                if ('object' === typeof config['build'] && config['build'].hasOwnProperty('target')) {
+                    target = config['build']['target'];
+                }
+
                 const authconfig = await whaler.emit('create:authconfig', createOpts);
-                await docker.followBuildImage(file, { pull, dockerfile, authconfig, t: createOpts['Image'] });
+                await docker.followBuildImage(file, { pull, dockerfile, buildargs, target, authconfig, t: createOpts['Image'] });
 
             } else {
                 try {
