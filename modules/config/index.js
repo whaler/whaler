@@ -193,6 +193,20 @@ async function prepareConfig (config, env, loader) {
                 services[key]['volumes'] = volumes;
             }
 
+            if ('object' === typeof services[key]['build'] && services[key]['build'].hasOwnProperty('args')) {
+                if (!Array.isArray(services[key]['build']['args'])) {
+                    const buildargs = [];
+                    for (let arg in services[key]['build']['args']) {
+                        if ('object' == typeof services[key]['build']['args'][arg]) {
+                            buildargs.push(arg);
+                        } else {
+                            buildargs.push(arg + '=' + services[key]['build']['args'][arg]);
+                        }
+                    }
+                    services[key]['build']['args'] = buildargs;
+                }
+            }
+
             if (services[key]['env'] && !Array.isArray(services[key]['env'])) {
                 const env = [];
                 for (let e in services[key]['env']) {
