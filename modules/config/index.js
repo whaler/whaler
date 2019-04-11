@@ -96,6 +96,14 @@ async function exports (whaler) {
             }
         } catch (e) {}
 
+        try {
+            const content = await fs.readFile(app.path + '/.env.local', 'utf8');
+            const env = parseEnv(content || '');
+            for (let key in env) {
+                vars[key] = env[key];
+            }
+        } catch (e) {}
+
         vars['APP_NAME'] = options['name'];
         vars['APP_PATH'] = app.path;
         vars['APP_ENV'] = app.env;
