@@ -42,7 +42,11 @@ async function exports (whaler) {
 
     // TODO: experimental
     whaler.on('config:prepare', async ctx => {
-        ctx.result = await prepareConfig(ctx.options['config'], ctx.options['app'].env, opts => loadConfig(app, opts));
+        ctx.result = await prepareConfig(
+            ctx.options['config'],
+            ctx.options['app'].env,
+            opts => loadConfig(ctx.options['app'], opts)
+        );
     });
 
     const loadConfig = async (app, options) => {
