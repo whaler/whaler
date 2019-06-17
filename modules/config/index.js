@@ -24,7 +24,9 @@ async function exports (whaler) {
             app.env = update['env'] = ctx.options['setEnv'];
         }
         if (ctx.options['update']) {
-            update['config'] = await loadConfig(app, ctx.options);
+            update['config'] = prepareOutput(
+                await loadConfig(app, ctx.options)
+            );
         }
 
         if (Object.keys(update).length > 0) {
@@ -34,10 +36,19 @@ async function exports (whaler) {
         } else {
             let config = app.config;
             if (ctx.options['file']) {
-                config = await loadConfig(app, ctx.options);
+                config = prepareOutput(
+                    await loadConfig(app, ctx.options)
+                );
             }
             ctx.result = config;
         }
+    });
+
+    // TODO: experimental
+    whaler.on('config:env', async ctx => {
+        const { default: storage } = await whaler.fetch('apps');
+        const app = await storage.get(ctx.options['name']);
+        ctx.result = app.env;
     });
 
     // TODO: experimental
@@ -120,6 +131,78 @@ async function exports (whaler) {
 // PRIVATE
 
 /**
+ * @param arr
+ * @returns {Object}
+ */
+function convertArrayToObject (arr, separator = ';') {
+    const obj = {};
+    if (arr) {
+        for (let str of arr) {
+            const [ key, ...rest ] = str.split(separator);
+            const value = rest && rest.join(separator);
+            if (value.length) {
+                obj[key] = value;
+            } else {
+                obj[key] = null;
+            }
+        }
+    }
+    return obj;
+}
+
+/**
+ * @param obj
+ * @returns {Array}
+ */
+function convertObjectToArray (obj, separator = ';') {
+    const arr = [];
+    if (obj) {
+        for (let key in obj) {
+            if ('object' == typeof obj[key] || 'undefined' == typeof obj[key]) {
+                arr.push(key);
+            } else {
+                arr.push(key + separator + obj[key]);
+            }
+        }
+    }
+    return arr;
+}
+
+/**
+ * @param config
+ * @returns {Object}
+ */
+function prepareOutput (config) {
+    const tmp = [];
+
+    const convert = (original, separator) => {
+        let converted;
+        const found = tmp.find(value => value.original === original);
+        if (found) {
+            converted = found.converted;
+        } else {
+            converted = convertObjectToArray(original, separator);
+            tmp.push({ original, converted });
+        }
+        return converted;
+    };
+
+    for (let key in config['data']['services']) {
+        const service = config['data']['services'][key];
+        if (service['env']) {
+            service['env'] = convert(service['env'], '=');
+        }
+        if (service['volumes']) {
+            service['volumes'] = convert(service['volumes'], ':');
+        }
+    }
+
+    config['data'] = yaml.load(yaml.dump(config['data'], { indent: 2 }));
+
+    return config;
+}
+
+/**
  * @param config
  * @param env
  * @returns {Object}
@@ -135,13 +218,31 @@ async function prepareConfig (config, env, loader) {
                 throw new Error('Service name "' + key + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
             }
 
+            if (services[key]['env'] && Array.isArray(services[key]['env'])) {
+                services[key]['env'] = convertArrayToObject(services[key]['env'], '=');
+            }
+
+            if (services[key]['volumes'] && Array.isArray(services[key]['volumes'])) {
+                services[key]['volumes'] = convertArrayToObject(services[key]['volumes'], ':');
+            }
+
             if (services[key]['extends']) {
                 const ex = await loader({
                     file: path.resolve(services[key]['extends']['file'])
                 });
                 const data = ex['data']['services'][services[key]['extends']['service']];
-                services[key] = util.extend({}, data, services[key]);
+                const fn = services[key]['extends']['fn'];
                 delete services[key]['extends'];
+
+                // TODO: experimental
+                if (fn) {
+                    const service = fn({ service: data, local: services[key] });
+                    if (service) {
+                        services[key] = util.extend({}, services[key], service);
+                    }
+                }
+
+                services[key] = util.extend({}, data, services[key]);
             }
 
             if (services[key]['extend']) {
@@ -183,26 +284,22 @@ async function prepareConfig (config, env, loader) {
                         }
                     }
                 }
+                const fn = services[key]['extend']['fn'];
+                delete services[key]['extend'];
 
                 if (data.hasOwnProperty('ports')) {
                     delete data['ports'];
                 }
 
-                services[key] = util.extend({}, data, services[key]);
-
-                delete services[key]['extend'];
-            }
-
-            if (services[key]['volumes'] && !Array.isArray(services[key]['volumes'])) {
-                const volumes = [];
-                for (let v in services[key]['volumes']) {
-                    if (services[key]['volumes'][v]) {
-                        volumes.push(v + ':' + services[key]['volumes'][v]);
-                    } else {
-                        volumes.push(v);
+                // TODO: experimental
+                if (fn) {
+                    const service = fn({ service: data, local: services[key] });
+                    if (service) {
+                        services[key] = util.extend({}, services[key], service);
                     }
                 }
-                services[key]['volumes'] = volumes;
+
+                services[key] = util.extend({}, data, services[key]);
             }
 
             if ('object' === typeof services[key]['build'] && services[key]['build'].hasOwnProperty('args')) {
@@ -217,18 +314,6 @@ async function prepareConfig (config, env, loader) {
                     }
                     services[key]['build']['args'] = buildargs;
                 }
-            }
-
-            if (services[key]['env'] && !Array.isArray(services[key]['env'])) {
-                const env = [];
-                for (let e in services[key]['env']) {
-                    if ('object' == typeof services[key]['env'][e]) {
-                        env.push(e);
-                    } else {
-                        env.push(e + '=' + services[key]['env'][e]);
-                    }
-                }
-                services[key]['env'] = env;
             }
 
             if (services[key]['wait'] && 'string' !== typeof services[key]['wait']) {

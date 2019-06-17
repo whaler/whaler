@@ -77,7 +77,8 @@ async function cmd (whaler) {
                     }
 
                 } else {
-                    console.info('\n' + config.file + '\n');
+                    const env = await whaler.emit('config:env', { name });
+                    console.info('\n' + config.file + '~' + env + '\n');
                     console.log(yaml.dump(config.data, yamlDumpOpts).trim());
                 }
             }
