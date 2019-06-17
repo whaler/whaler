@@ -19,12 +19,14 @@ class Plugins extends Manager {
      * @api public
      */
     constructor() {
+        this.path = process.env.WHALER_PLUGINS_PATH || '/var/lib/whaler/plugins';
         super('whaler-plugin', {
             opts: {
                 'audit': false,
                 'loglevel': 'error',
+                'global-style': true,
                 'package-lock': false,
-                'prefix': '/var/lib/whaler/plugins'
+                'prefix': this.path
             }
         });
     }

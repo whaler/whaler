@@ -161,7 +161,7 @@ async function exists (path) {
 
 async function mkdir (dir) {
     if (!(await exists(dir))) {
-        await fs.mkdir(dir);
+        await fs.mkdir(dir, { recursive: true });
     }
 }
 
