@@ -65,11 +65,11 @@ async function cmd (whaler) {
                         diff.forEach((part) => {
                             const value = part['value'].split('\n\n').join('\n');
                             if (part['added']) {
-                                process.stdout.write(colors.green(value));
+                                process.stdout.write(colors.green(printDiff('+', value)));
                             } else if (part['removed']) {
-                                process.stdout.write(colors.red(value));
+                                process.stdout.write(colors.red(printDiff('-', value)));
                             } else {
-                                process.stdout.write(value);
+                                process.stdout.write(printDiff(' ', value));
                             }
                         });
                     } else {
@@ -84,4 +84,22 @@ async function cmd (whaler) {
             }
         });
 
+}
+
+// PRIVATE
+
+/**
+ * @param prefix
+ * @param value
+ * @returns {string}
+ */
+function printDiff (prefix, value) {
+    const arr = value.split('\n');
+    const len = arr.length;
+
+    return arr.map((v, i) => {
+        if (len != i + 1) {
+            return prefix + v;
+        }
+    }).join('\n');
 }

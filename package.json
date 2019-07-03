@@ -21,7 +21,7 @@
     "whaler": "bin/whaler"
   },
   "engines": {
-    "node": ">=10.15"
+    "node": ">=10.16"
   },
   "next": {
     "nmpm": "^1.1.0"
