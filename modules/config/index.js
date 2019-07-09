@@ -189,10 +189,10 @@ function prepareOutput (config) {
 
     for (let key in config['data']['services']) {
         const service = config['data']['services'][key];
-        if (service['env']) {
+        if (service['env'] && !Array.isArray(service['env'])) {
             service['env'] = convert(service['env'], '=');
         }
-        if (service['volumes']) {
+        if (service['volumes'] && !Array.isArray(service['volumes'])) {
             service['volumes'] = convert(service['volumes'], ':');
         }
     }
