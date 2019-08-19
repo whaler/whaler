@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const util = require('util');
 const mkdirp = util.promisify(require('mkdirp'));
+const parseEnv = require('../../lib/parse-env');
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
@@ -85,6 +86,23 @@ async function exports (whaler) {
             config['env'] = config['env'] || [];
             config['env'].push('WHALER_APP=' + appName);
             config['env'].push('WHALER_SERVICE=' + name);
+
+            if (config['env_file']) {
+                if (!Array.isArray(config['env_file'])) {
+                    config['env_file'] = [ config['env_file'] ];
+                }
+
+                for (let envFile of config['env_file']) {
+                    try {
+                        const content = await fs.readFile(envFile, 'utf8');
+                        const env = parseEnv(content || '');
+                        for (let key in env) {
+                            vars[key] = env[key];
+                        }
+                    } catch (e) {}
+                }
+            }
+
             for (let v in vars) {
                 let exists = false;
                 if (config['env'].length) {
