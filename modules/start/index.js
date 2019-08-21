@@ -105,10 +105,10 @@ async function exports (whaler) {
                 } else {
                     let waitMode = 'noninteractive';
                     if (info['Config']['Labels'] && info['Config']['Labels']['whaler.wait']) {
-                        if (process.env.WHALER_WAIT_MODE) {
-                            waitMode = process.env.WHALER_WAIT_MODE;
-                        } else if ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY) {
-                            waitMode = 'interactive';
+                        if ('interactive' === process.env.WHALER_WAIT_MODE) {
+                            if ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY) {
+                                waitMode = 'interactive';
+                            }
                         }
                     }
 

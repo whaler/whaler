@@ -134,11 +134,10 @@ async function exports (whaler) {
             let waitMode = 'noninteractive';
             if (config['wait']) {
                 config['labels']['whaler.wait'] = config['wait'].toString();
-
-                if (process.env.WHALER_WAIT_MODE) {
-                    waitMode = process.env.WHALER_WAIT_MODE;
-                } else if ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY) {
-                    waitMode = 'interactive';
+                if ('interactive' === process.env.WHALER_WAIT_MODE) {
+                    if ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY) {
+                        waitMode = 'interactive';
+                    }
                 }
             }
 
