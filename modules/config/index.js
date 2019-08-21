@@ -248,36 +248,44 @@ async function prepareConfig (config, env, loader) {
             if (services[key]['extend']) {
                 if ('string' === typeof services[key]['extend']) {
                     let service = services[key]['extend'];
-                    let include = undefined;
-                    let exclude = undefined;
+                    let type = 'exclude';
+                    let keys = [];
+
                     if (service.indexOf('&') !== -1) {
+                        type = 'include';
                         const parts = service.split('&');
                         service = parts[0];
-                        include = parts[1].split(',');
+                        keys = parts[1].split(',');
                     } else if (service.indexOf('!') !== -1) {
+                        type = 'exclude';
                         const parts = service.split('!');
                         service = parts[0];
-                        exclude = parts[1].split(',');
+                        keys = parts[1].split(',');
                     }
 
-                    services[key]['extend'] = {
-                        service: service,
-                        include: include,
-                        exclude: exclude
-                    };
+                    services[key]['extend'] = { service, type, keys };
+                }
+
+                // TODO: BC
+                if (services[key]['extend']['include']) {
+                    services[key]['extend']['type'] = 'include';
+                    services[key]['extend']['keys'] = services[key]['extend']['include'];
+                } else if (services[key]['extend']['exclude']) {
+                    services[key]['extend']['type'] = 'exclude';
+                    services[key]['extend']['keys'] = services[key]['extend']['exclude'];
                 }
 
                 let data = {};
-                if (services[key]['extend']['include']) {
-                    for (let include of services[key]['extend']['include']) {
-                        if (services[services[key]['extend']['service']].hasOwnProperty(include)) {
-                            data[include] = services[services[key]['extend']['service']][include];
+                if (services[key]['extend']['keys']) {
+                    if ('include' === services[key]['extend']['type']) {
+                        for (let include of services[key]['extend']['keys']) {
+                            if (services[services[key]['extend']['service']].hasOwnProperty(include)) {
+                                data[include] = services[services[key]['extend']['service']][include];
+                            }
                         }
-                    }
-                } else {
-                    data = util.extend({}, services[services[key]['extend']['service']]);
-                    if (services[key]['extend']['exclude']) {
-                        for (let exclude of services[key]['extend']['exclude']) {
+                    } else {
+                        data = util.extend({}, services[services[key]['extend']['service']]);
+                        for (let exclude of services[key]['extend']['keys']) {
                             if (data.hasOwnProperty(exclude)) {
                                 delete data[exclude];
                             }
