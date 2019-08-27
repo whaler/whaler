@@ -224,8 +224,13 @@ async function exports (whaler) {
                     }
                     if (!buildContext['context']) {
                         buildContext['context'] = [];
+                    } else if ('string' === typeof buildContext['context']) {
+                        buildContext['context'] = [ buildContext['context'] ];
                     }
-                    buildContext['context'][dockerfile] = { Dockerfile: config['dockerfile'] };
+
+                    const df = {};
+                    df[dockerfile] = config['dockerfile'];
+                    buildContext['context'].push(df);
                 }
             }
 
