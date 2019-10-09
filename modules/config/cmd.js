@@ -84,6 +84,47 @@ async function cmd (whaler) {
             }
         });
 
+    (await whaler.fetch('cli')).default
+
+        .command(pkg.name + ':env [name]')
+        .description('Env configuration', {
+            name: 'Application name'
+        })
+        .option('--add <ENV>', 'Add environment')
+        .option('--remove <ENV>', 'Remove environment')
+        .action(async (name, options, util) => {
+            name = util.prepare('name', name);
+
+            const env = await whaler.emit('config:env', { name });
+            const arr = env.split(',');
+
+            if (options.add) {
+                const add = options.add.split(',');
+                for (let env of add) {
+                    if (!arr.includes(env)) {
+                        arr.push(env);
+                    }
+                }
+            }
+
+            if (options.remove) {
+                const remove = options.remove.split(',');
+                for (let env of remove) {
+                    if (arr.includes(env)) {
+                        arr.splice(arr.indexOf(env), 1);
+                    }
+                }
+            }
+
+            const setEnv = arr.join(',');
+            if (env != setEnv) {
+                const config = await whaler.emit('config', { name, setEnv });
+                console.info('\n' + arr.join(','));
+            } else {
+                console.info('\n' + env);
+            }
+        });
+
 }
 
 // PRIVATE
