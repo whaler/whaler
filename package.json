@@ -25,7 +25,7 @@
     "node": ">=10.16"
   },
   "dependencies": {
-    "@zeit/dockerignore": "^0.0.5",
+    "@balena/dockerignore": "^1.0.2",
     "cli-table": "^0.3.1",
     "co": "^4.6.0",
     "colors": "^1.4.0",
