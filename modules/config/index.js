@@ -264,6 +264,13 @@ async function prepareConfig (config, env, loader) {
                     }
 
                     services[key]['extend'] = { service, type, keys };
+                } else {
+                    if (!services[key]['extend']['type']) {
+                        services[key]['extend']['type'] = 'exclude';
+                    }
+                    if (!services[key]['extend']['keys']) {
+                        services[key]['extend']['keys'] = [];
+                    }
                 }
 
                 // TODO: BC
@@ -299,15 +306,20 @@ async function prepareConfig (config, env, loader) {
                     delete data['ports'];
                 }
 
+                let baseExtend = true;
+
                 // TODO: experimental
                 if (fn) {
                     const service = fn({ service: data, local: services[key] });
                     if (service) {
-                        services[key] = util.extend({}, services[key], service);
+                        baseExtend = false;
+                        services[key] = util.extend({}, service);
                     }
                 }
 
-                services[key] = util.extend({}, data, services[key]);
+                if (baseExtend) {
+                    services[key] = util.extend({}, data, services[key]);
+                }
             }
 
             if ('object' === typeof services[key]['build'] && services[key]['build'].hasOwnProperty('args')) {
