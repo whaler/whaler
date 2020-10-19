@@ -2,9 +2,9 @@
 
 'use strict';
 
-var fs = require('fs');
-var path = require('path');
-var request = require('request');
+const fs = require('fs');
+const path = require('path');
+const fetch = require('node-fetch');
 
 if ('dev' === (process.env['WHALER_SETUP'] || null)) {
     const dev = {
@@ -14,23 +14,14 @@ if ('dev' === (process.env['WHALER_SETUP'] || null)) {
 
     fs.writeFileSync(path.dirname(__dirname) + '/dev.json', JSON.stringify(dev, null, 2));
 
-    request({
-        url: 'https://api.github.com/repos/whaler/whaler/commits/master',
+    fetch('https://api.github.com/repos/whaler/whaler/commits/master', {
         headers: {
             'User-Agent': 'whaler'
+        },
+    }).then(res => res.json()).then(data => {
+        if (data['sha'] || null) {
+            dev['sha'] = data['sha'];
+            fs.writeFileSync(path.dirname(__dirname) + '/dev.json', JSON.stringify(dev, null, 2));
         }
-    }, (err, resp, body) => {
-        if (!err) {
-            if (resp.statusCode == 200) {
-                try {
-                    const data = JSON.parse(body);
-
-                    if (data['sha'] || null) {
-                        dev['sha'] = data['sha'];
-                        fs.writeFileSync(path.dirname(__dirname) + '/dev.json', JSON.stringify(dev, null, 2));
-                    }
-                } catch(e) {}
-            }
-        }
-    });
+    }).catch(err => {});
 }

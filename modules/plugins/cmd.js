@@ -72,9 +72,9 @@ async function install (whaler) {
             console.log('');
             const response = await whaler.emit('plugins:install', { name });
             if (false === response) {
-                throw new Error('Can\'t install plugin "' + name + '".');
+                throw new Error('Can\'t install plugin `' + name + '`.');
             }
-            whaler.info('Plugin "%s" installed.', response['name']);
+            whaler.info('Plugin `%s` installed.', response['name']);
         });
 
 }
@@ -92,7 +92,7 @@ async function remove (whaler) {
         })
         .action(async (name, options) => {
             const response = await whaler.emit('plugins:remove', { name });
-            whaler.info('Plugin "%s" removed.', name);
+            whaler.info('Plugin `%s` removed.', name);
         });
 
 }

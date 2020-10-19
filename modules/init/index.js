@@ -2,8 +2,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const util = require('util');
-const mkdirp = util.promisify(require('mkdirp'));
+const mkdirp = require('mkdirp');
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
