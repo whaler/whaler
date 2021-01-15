@@ -1,9 +1,9 @@
 'use strict';
 
-const yaml = require('js-yaml');
+const yaml = require('../../lib/yaml');
+const chalk = require('chalk');
 const jsDiff = require('diff');
 const pkg = require('./package.json');
-const colors = require('colors/safe');
 
 module.exports = cmd;
 
@@ -40,9 +40,9 @@ async function cmd (whaler) {
             };
 
             if (options.update) {
-                whaler.info('Application "%s" config updated.', name);
+                whaler.info('Application `%s` config updated.', name);
             } else if (options.setEnv) {
-                whaler.info('Application "%s" env updated.', name);
+                whaler.info('Application `%s` env updated.', name);
             } else {
                 if (options.diff) {
                     const _config = await whaler.emit('config', {
@@ -65,9 +65,9 @@ async function cmd (whaler) {
                         diff.forEach((part) => {
                             const value = part['value'].split('\n\n').join('\n');
                             if (part['added']) {
-                                process.stdout.write(colors.green(printDiff('+', value)));
+                                process.stdout.write(chalk.green(printDiff('+', value)));
                             } else if (part['removed']) {
-                                process.stdout.write(colors.red(printDiff('-', value)));
+                                process.stdout.write(chalk.red(printDiff('-', value)));
                             } else {
                                 process.stdout.write(printDiff(' ', value));
                             }

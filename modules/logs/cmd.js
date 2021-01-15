@@ -42,6 +42,6 @@ async function cmd (whaler) {
 
             await container.followLogs();
         })
-        .ignoreEndLine(true);
+        .ignoreOutEndLine(true);
 
 }

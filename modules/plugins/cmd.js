@@ -53,7 +53,7 @@ async function list (whaler) {
             }
 
         })
-        .ignoreEndLine(true);
+        .ignoreOutEndLine(true);
 
 }
 
@@ -71,11 +71,12 @@ async function install (whaler) {
         .action(async (name, options) => {
             console.log('');
             const response = await whaler.emit('plugins:install', { name });
-            if (false === response) {
-                throw new Error('Can\'t install plugin `' + name + '`.');
+            if (!response || typeof response !== 'object') {
+                throw new Error('Undefined error while installing plugin `' + name + '`.');
             }
-            whaler.info('Plugin `%s` installed.', response['name']);
-        });
+            whaler.info('Plugin `%s` installed.', response.pkg['name']);
+        })
+        .ignoreErrStartLine(true);
 
 }
 
@@ -91,8 +92,13 @@ async function remove (whaler) {
             name: 'Plugin name'
         })
         .action(async (name, options) => {
+            console.log('');
             const response = await whaler.emit('plugins:remove', { name });
+            if (!response || typeof response !== 'object') {
+                throw new Error('Undefined error while removing plugin `' + name + '`.');
+            }
             whaler.info('Plugin `%s` removed.', name);
-        });
+        })
+        .ignoreErrStartLine(true);
 
 }

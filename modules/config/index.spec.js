@@ -5,11 +5,10 @@ const util = require('util');
 const rewire = require('rewire');
 const assert = require('chai').assert;
 
-const promisify = require('../../lib/promisify');
 const Whaler = require('../../index');
 const Apps = require('../../src/apps').Apps;
 
-const storage = promisify(new Apps());
+const storage = new Apps();
 
 class TestWhaler extends Whaler {
     async fetch(id) {
@@ -74,7 +73,7 @@ describe('modules/config', () => {
                     return {};
                 }
 
-                throw new Error('file "' + path + '" not found');
+                throw new Error('file `' + path + '` not found');
             },
             readFile: async path => {
                 if ('/app/whaler.yml' == path) {
@@ -95,7 +94,7 @@ describe('modules/config', () => {
                     ].join('\n');
                 }
 
-                throw new Error('file "' + path + '" not found');
+                throw new Error('file `' + path + '` not found');
             }
         };
         const revert = module.__set__('fs', fsMock);
@@ -144,7 +143,7 @@ describe('modules/config', () => {
                     return {};
                 }
 
-                throw new Error('file "' + path + '" not found');
+                throw new Error('file `' + path + '` not found');
             },
             readFile: async path => {
                 if ('/app/whaler.yml' == path) {
@@ -166,7 +165,7 @@ describe('modules/config', () => {
                     ].join('\n');
                 }
 
-                throw new Error('file "' + path + '" not found');
+                throw new Error('file `' + path + '` not found');
             }
         };
         const revert = module.__set__('fs', fsMock);
@@ -242,7 +241,7 @@ describe('modules/config', () => {
                     return {};
                 }
 
-                throw new Error('file "' + path + '" not found');
+                throw new Error('file `' + path + '` not found');
             },
             readFile: async path => {
                 if ('/app/empty.yml' == path) {
@@ -295,7 +294,7 @@ describe('modules/config', () => {
                     ].join('\n');
                 }
 
-                throw new Error('file "' + path + '" not found');
+                throw new Error('file `' + path + '` not found');
             }
         };
         const revert = module.__set__('fs', fsMock);

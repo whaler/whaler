@@ -37,6 +37,6 @@ async function cmd (whaler) {
                 });
             });
         })
-        .ignoreEndLine(true);
+        .ignoreOutEndLine(true);
 
 }

@@ -20,7 +20,7 @@ async function cmd (whaler) {
  */
 async function list (whaler) {
 
-        (await whaler.fetch('cli')).default
+    (await whaler.fetch('cli')).default
 
         .command(pkg.name)
         .description('Show vars')
@@ -47,7 +47,7 @@ async function list (whaler) {
             }
 
         })
-        .ignoreEndLine(true);
+        .ignoreOutEndLine(true);
 
 }
 

@@ -27,7 +27,7 @@ async function cmd (whaler) {
 
             await whaler.emit('init', { name, path, ...util.filter(options, ['env', 'config']) });
 
-            whaler.info('An application with "%s" name created.', name);
+            whaler.info('An application with `%s` name created.', name);
         });
 
 }

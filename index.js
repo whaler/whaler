@@ -4,14 +4,11 @@ require('./lib/console');
 require('./lib/polyfill');
 
 const fs = require('fs').promises;
+const pkg = require('./package.json');
 const parseEnv = require('./lib/parse-env');
-const promisify = require('./lib/promisify');
 const Application = require('./lib/application');
 
 const CONFIG = Symbol('config');
-
-// TODO: remove in v1
-const promisifyCache = {};
 
 class Whaler extends Application {
     /**
@@ -20,9 +17,7 @@ class Whaler extends Application {
     constructor() {
         super();
         this.path = __dirname;
-
-        // TODO: remove in v1
-        this._require = (id) => module.require(id);
+        this.version = pkg.version;
     }
 
     /**
@@ -40,7 +35,7 @@ class Whaler extends Application {
      */
     async init() {
         // base
-        await mkdir('/etc/whaler');
+        await mkdirp('/etc/whaler');
         await loadEnv('/etc/whaler/env');
 
         // home
@@ -49,7 +44,7 @@ class Whaler extends Application {
         }
 
         // bridge
-        await mkdir('/var/lib/whaler/bin');
+        await mkdirp('/var/lib/whaler/bin');
         await fs.writeFile('/var/lib/whaler/bin/bridge', await fs.readFile(__dirname + '/bin/bridge'), { mode: '755' });
 
         // kill handler
@@ -104,16 +99,14 @@ class Whaler extends Application {
      * @param id
      */
     async fetch(id) {
-        // TODO: refactor and remove in v1
-        if (['apps', 'vars'].includes(id)) {
-            if (!promisifyCache[id]) {
-                const imported = await this.import('./src/' + id);
-                promisifyCache[id] = { default: promisify(imported.default) };
-            }
-            return promisifyCache[id];
-        }
-
         return await this.import('./src/' + id);
+    }
+
+    /**
+     * @api private
+     */
+    deprecated(message) {
+        return this.emit('deprecated', { message });
     }
 
     /**
@@ -150,7 +143,6 @@ module.exports = Whaler;
 // PRIVATE
 
 async function exists (path) {
-    //return await fs.exists(path);
     try {
         await fs.stat(path);
         return true;
@@ -159,7 +151,7 @@ async function exists (path) {
     return false;
 }
 
-async function mkdir (dir) {
+async function mkdirp (dir) {
     if (!(await exists(dir))) {
         await fs.mkdir(dir, { recursive: true });
     }

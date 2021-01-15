@@ -9,13 +9,13 @@ This app depends on [docker](https://www.docker.com/).
 ### Linux & Darwin/OSX 64bit
 
 ```sh
-$ curl -sSL https://git.io/get-whaler | sh
+curl -sSL https://git.io/get-whaler | sh
 ```
 
 OR
 
 ```sh
-$ curl -sSL https://git.io/get-whaler | sh -s -- [options]
+curl -sSL https://git.io/get-whaler | sh -s -- [options]
 ```
 
 Available options:

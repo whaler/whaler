@@ -17,7 +17,7 @@ async function exports (whaler) {
         let serviceName = null;
 
         if (ctx.options['init'] && !/^[a-z0-9-]+$/.test(appName)) {
-            throw new Error('Application name "' + appName + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
+            throw new Error('Application name `' + appName + '` includes invalid characters, only `[a-z0-9-]` are allowed.');
         }
 
         const parts = ctx.options['ref'].split('.');
@@ -101,7 +101,7 @@ async function exports (whaler) {
             if (info) {
                 if (info['State']['Running']) {
                     needStart = false;
-                    whaler.warn('Container "%s.%s" already running.', name, appName);
+                    whaler.warn('Container `%s.%s` already running.', name, appName);
                 } else {
                     let waitMode = 'noninteractive';
                     if (info['Config']['Labels'] && info['Config']['Labels']['whaler.wait']) {
@@ -116,12 +116,12 @@ async function exports (whaler) {
                     if ('interactive' === waitMode) {
                         if (!info['Config']['Tty']) {
                             needRebuild = true;
-                            whaler.warn('Rebuild container "%s.%s" to interactive mode.', name, appName);
+                            whaler.warn('Rebuild container `%s.%s` to interactive mode.', name, appName);
                         }
                     } else {
                         if (info['Config']['Tty']) {
                             needRebuild = true;
-                            whaler.warn('Rebuild container "%s.%s" to non-interactive mode.', name, appName);
+                            whaler.warn('Rebuild container `%s.%s` to non-interactive mode.', name, appName);
                         }
                     }
 
@@ -141,7 +141,7 @@ async function exports (whaler) {
             }
 
             if (needStart) {
-                whaler.info('Starting "%s.%s" container.', name, appName);
+                whaler.info('Starting `%s.%s` container.', name, appName);
 
                 info = await container.inspect();
 
@@ -193,7 +193,7 @@ async function exports (whaler) {
 
                 info = await container.inspect();
 
-                whaler.info('Container "%s.%s" started.', name, appName);
+                whaler.info('Container `%s.%s` started.', name, appName);
             }
 
             containers[name] = container;
@@ -231,7 +231,7 @@ async function exports (whaler) {
             process.stdin.on('data', keyPress);
         }
 
-        return function revert() {
+        return function revert () {
             unpipeStream();
 
             if (attachStdin) {
@@ -299,7 +299,7 @@ async function exports (whaler) {
             whaler.info('Waiting %ss to make sure container is started.', sleepTime / 1000);
 
             if (-1 !== data.indexOf('@whaler ready in')) {
-                whaler.warn('"@me ready in" is deprecated, please use "@whaler wait" instead.');
+                whaler.warn('`@me ready in` is deprecated, please use `@whaler wait` instead.');
             }
 
             return sleepTime;

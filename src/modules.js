@@ -56,7 +56,7 @@ module.exports = new Modules();
 
 // PRIVATE
 
-async function getModules() {
+async function getModules () {
     const data = {};
     const dir = path.join(path.dirname(__dirname), 'modules');
     const list = await fs.readdir(dir);

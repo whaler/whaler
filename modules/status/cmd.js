@@ -1,7 +1,7 @@
 'use strict';
 
+const chalk = require('chalk');
 const pkg = require('./package.json');
-const colors = require('colors/safe');
 
 module.exports = cmd;
 
@@ -32,7 +32,7 @@ async function cmd (whaler) {
                 const data = [];
                 let message = false;
                 for (let service of response) {
-                    const color = service.volatile ? colors['red'] : null;
+                    const color = service.volatile ? chalk['red'] : null;
 
                     if (color && !message) {
                         message = true;
@@ -49,11 +49,11 @@ async function cmd (whaler) {
                 console.log('\n' + table.render(data) + '\n');
 
                 if (message) {
-                    console.log('  ' + colors['red']('*') + ' Volatile container, will be removed on app rebuild.\n');
+                    console.log('  ' + chalk['red']('*') + ' Volatile container, will be removed on app rebuild.\n');
                 }
             }
 
         })
-        .ignoreEndLine(true);
+        .ignoreOutEndLine(true);
 
 }

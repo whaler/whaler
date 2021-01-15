@@ -16,39 +16,36 @@
     "containers"
   ],
   "license": "MIT",
-  "version": "0.6.0",
+  "version": "0.7.0-dev",
   "main": "index.js",
   "bin": {
     "whaler": "bin/whaler"
   },
   "engines": {
-    "node": ">=10.16"
+    "node": ">=14.15"
   },
   "dependencies": {
     "@balena/dockerignore": "^1.0.2",
-    "cli-table": "^0.3.1",
-    "co": "^4.6.0",
-    "colors": "^1.4.0",
-    "diff": "^4.0.2",
+    "chalk": "^4.1.0",
+    "cli-table": "^0.3.4",
+    "diff": "^5.0.0",
     "dockerode": "^3.2.1",
-    "fs.promises": "^0.1.2",
-    "js-yaml": "^3.14.0",
+    "js-yaml": "^4.0.0",
+    "js-yaml-js-types": "^1.0.0",
     "koa-compose": "^4.1.0",
-    "mkdirp": "^1.0.4",
-    "nedb": "^1.8.0",
-    "nmpm": "^1.1.0",
+    "nmpm": "^2.0.0",
     "node-fetch": "^2.6.1",
     "node-pty": "^0.9.0",
+    "semver": "^7.3.4",
     "stack-trace": "^0.0.10",
     "string-argv": "^0.3.1",
-    "tar-fs": "^2.1.0",
-    "tar-stream": "^2.1.4",
-    "x-commander": "^0.2.4",
-    "x-node": "^0.1.0"
+    "tar-fs": "^2.1.1",
+    "tar-stream": "^2.2.0",
+    "x-commander": "^0.3.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
-    "mocha": "^8.2.0",
+    "mocha": "^8.2.1",
     "rewire": "^5.0.0"
   },
   "optionalDependencies": {},
@@ -60,7 +57,7 @@
     "url": "https://github.com/whaler/whaler/issues"
   },
   "scripts": {
-    "test": "mocha -r fs.promises './{,!(node_modules|examples|plugins)/**/}*.spec.js'",
+    "test": "mocha './{,!(node_modules|examples|plugins)/**/}*.spec.js'",
     "postinstall": "./bin/setup"
   }
 }

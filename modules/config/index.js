@@ -2,7 +2,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const yaml = require('js-yaml');
+const yaml = require('../../lib/yaml');
 const util = require('dockerode/lib/util');
 const parseEnv = require('../../lib/parse-env');
 const renderTemplate = require('../../lib/render-template');
@@ -80,7 +80,7 @@ async function exports (whaler) {
             try {
                 await fs.stat(file);
             } catch (e) {
-                throw new Error('Config file "' + file + '" not exists.');
+                throw new Error('Config file `' + file + '` not exists.');
             }
 
             data = await renderTemplate(file, vars);
@@ -197,7 +197,7 @@ function prepareOutput (config) {
         }
     }
 
-    config['data'] = yaml.load(yaml.dump(config['data'], { indent: 2 }));
+    config['data'] = yaml.load(yaml.dump(config['data']));
 
     return config;
 }
@@ -215,7 +215,7 @@ async function prepareConfig (config, env, loader) {
         const services = config['services'];
         for (let key in services) {
             if (!/^[a-z0-9-]+$/.test(key)) {
-                throw new Error('Service name "' + key + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
+                throw new Error('Service name `' + key + '` includes invalid characters, only `[a-z0-9-]` are allowed.');
             }
 
             if (services[key]['env'] && Array.isArray(services[key]['env'])) {

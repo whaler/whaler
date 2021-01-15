@@ -1,11 +1,11 @@
 'use strict';
 
-var Table = require('cli-table');
-var utils = require('cli-table/lib/utils');
+const Table = require('cli-table');
+const utils = require('cli-table/lib/utils');
 
 module.exports = table;
 
-function table(options) {
+function table (options) {
     const _table = new Table(utils.options({
         head: [],
         style : {
@@ -26,7 +26,7 @@ function table(options) {
      * @param data
      * @returns string
      */
-    _table.render = function(data) {
+    _table.render = function (data) {
         if (data) {
             for (let row of data) {
                 _table.push(row);
@@ -43,6 +43,6 @@ function table(options) {
  * @param data
  * @returns string
  */
-table.render = function(data) {
+table.render = function (data) {
     return table().render(data);
 };

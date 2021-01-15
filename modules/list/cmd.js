@@ -1,7 +1,7 @@
 'use strict';
 
+const chalk = require('chalk');
 const pkg = require('./package.json');
-const colors = require('colors/safe');
 
 module.exports = cmd;
 
@@ -33,7 +33,7 @@ async function cmd (whaler) {
                         } else if ('OFF' == service.status) {
                             value = '-';
                         }
-                        status.push(color ? colors[color](value) : value);
+                        status.push(color ? chalk[color](value) : value);
                     }
 
                     data.push([app.name, app.env, status.join('|'), app.path || '']);
@@ -41,6 +41,6 @@ async function cmd (whaler) {
                 console.log('\n' + table.render(data) + '\n');
             }
         })
-        .ignoreEndLine(true);
+        .ignoreOutEndLine(true);
 
 }

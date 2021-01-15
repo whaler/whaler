@@ -1,8 +1,8 @@
 'use strict';
 
-var fs = require('fs');
-var tls = require('tls');
-var path = require('path');
+const fs = require('fs');
+const tls = require('tls');
+const path = require('path');
 
 module.exports = client;
 
@@ -10,7 +10,7 @@ module.exports = client;
  * @param host
  * @param argv
  */
-function client(host, argv) {
+function client (host, argv) {
     let port = 1337;
 
     const arr = host.split(':');
@@ -78,11 +78,11 @@ function client(host, argv) {
                 rows: process.stdout.rows
             }
         }));
-        process.stdout.on('resize', function() {
+        process.stdout.on('resize', function () {
             if (timerId) {
                 clearTimeout(timerId);
             }
-            timerId = setTimeout(function() {
+            timerId = setTimeout(function () {
                 client.write('xterm-resize:' + JSON.stringify({
                     cols: process.stderr.columns,
                     rows: process.stdout.rows

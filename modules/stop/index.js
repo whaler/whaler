@@ -49,12 +49,12 @@ async function exports (whaler) {
             const info = await container.inspect();
 
             if (!info['State']['Running']) {
-                whaler.warn('Container "%s.%s" already stopped.', name, appName);
+                whaler.warn('Container `%s.%s` already stopped.', name, appName);
 
             } else {
-                whaler.info('Stopping "%s.%s" container.', name, appName);
+                whaler.info('Stopping `%s.%s` container.', name, appName);
                 await container.stop({});
-                whaler.info('Container "%s.%s" stopped.', name, appName);
+                whaler.info('Container `%s.%s` stopped.', name, appName);
             }
 
             containers[name] = container;

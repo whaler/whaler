@@ -1,20 +1,16 @@
 'use strict';
 
 const path = require('path');
-const format = require('util').format;
-const cli = require('x-commander/extra');
+const chalk = require('chalk');
+const commander = require('x-commander');
+const deprecated = require('../lib/deprecated');
 const pkg = require('../package.json');
-const deprecate = require('../lib/deprecate');
 
-// TODO: remove in v1
-const $ = require('x-node');
-
-cli.l10n({
-    'output usage information': 'Output usage information',
-    'output the version number': 'Display this application version'
-});
-
-cli.deprecate = message => null;
+let version = pkg.version;
+try {
+    const dev = require('../dev.json');
+    version = dev.version + (dev.sha ? ' ' + dev.sha.substr(0, 7) : '');
+} catch(e) {}
 
 const util = {
     /**
@@ -76,64 +72,151 @@ const util = {
     }
 };
 
-/**
- * @param status
- */
-cli.Command.prototype.ignoreEndLine = function(status) {
-    this.__ignoreEndLine = status;
-    return this;
+const outputError = (message, ignoreStartLine = false, ignoreEndLine = false) => {
+    const startLine = true === ignoreStartLine ? '' : '\n';
+    const endLine = true === ignoreEndLine ? '' : '\n';
+    console.error(startLine + '[%s] %s' + endLine, process.pid, message);
 };
 
-cli.Command.prototype._action = cli.Command.prototype.action;
-cli.Command.prototype.action = function(fn) {
-    const done = err => {
-        if (err) {
-            console.error('\n[%s] %s\n', process.pid, err.message || err);
-        } else if (true !== this.__ignoreEndLine) {
-            console.log('');
+class Command extends commander.Command {
+    /**
+     * @inheritdoc
+     */
+    constructor(...args) {
+        super(...args);
+        if (!this.parent) {
+            this.addHelpCommand(false);
         }
-    };
+    }
 
-    // TODO: remove in v1
-    if ($.isGenerator(fn)) {
-        cli.deprecate(
-            deprecate(trace => '"cli.action" support for generators will be removed in v1.')
-        );
-        this.util = util;
-        fn = fn.bind(this);
-        return this._action($.async(fn, done));
-    } else {
-        return this._action(async (...args) => {
-            let err = null;
+    /**
+     * @inheritdoc
+     */
+    createCommand(...args) {
+        return new Command(...args);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    action(fn) {
+        return super.action(async (...args) => {
             try {
-                await fn(...args, util);
-            } catch (e) {
-                err = e;
+                const cmd = args.pop();
+                await fn(...args, util, cmd);
+                if (true !== this.__ignoreOutEndLine) {
+                    console.log('');
+                }
+            } catch (err) {
+                outputError('error: ' + (err.message || err), this.__ignoreErrStartLine, this.__ignoreErrEndLine);
+                process.exit(1);
             }
-            await Promise.resolve();
-            done(err);
         });
     }
-};
 
-cli._name = pkg.name;
+    /**
+     * @private
+     */
+    deprecated(message) {
+        if (this.parent) {
+            this.parent.deprecated(message);
+        } else {
+            this.emit('deprecated', message);
+        }
+    }
 
-cli._printer.error = function(...args) {
-    throw new Error(format.apply(null, args));
-};
+    /**
+     * @deprecated
+     * @param {boolean} status
+     * @return {Command} `this` command for chaining
+     */
+    ignoreEndLine(status) {
+        this.deprecated(
+            deprecated(
+                trace => '`cli.ignoreEndLine` is deprecated and will be removed in some later release. Use `cli.ignoreOutEndLine` instead.'
+            )
+        );
+        return this.ignoreOutEndLine(status);
+    }
 
-try {
-    const dev = require('../dev.json');
-    cli.version(dev.version + (dev.sha ? ' ' + dev.sha.substr(0, 7) : ''));
-} catch(e) {
-    cli.version(pkg.version);
+    /**
+     * @param {boolean} status
+     * @return {Command} `this` command for chaining
+     */
+    ignoreOutEndLine(status) {
+        this.__ignoreOutEndLine = (status === undefined) || !!status;
+        return this;
+    }
+
+    /**
+     * @param {boolean} status
+     * @return {Command} `this` command for chaining
+     */
+    ignoreErrStartLine(status) {
+        this.__ignoreErrStartLine = (status === undefined) || !!status;
+        return this;
+    }
+
+    /**
+     * @param {boolean} status
+     * @return {Command} `this` command for chaining
+     */
+    ignoreErrEndLine(status) {
+        this.__ignoreErrEndLine = (status === undefined) || !!status;
+        return this;
+    }
 }
 
-cli.option(
-    '-H, --host <HOST>',
-    'Host to use'
-);
+const cli = new Command(pkg.name);
 
-cli.addUnknownCommand();
+cli.option('-H, --host <HOST>', 'Host to use');
+
+cli.version(version, null, 'Display this application version');
+
+cli.helpOption(null, 'Output usage information');
+
+cli.configureHelp({
+    labels: {
+        usage: 'Usage:\n',
+        description: 'Description:\n',
+        arguments: 'Arguments:\n',
+        options: 'Options:\n',
+        commands: 'Commands:\n',
+    },
+    styles: {
+        label: chalk.yellow,
+        term: chalk.green,
+        description: chalk.cyan,
+    },
+    formatParams: {
+        newLineUsage: true,
+        indentDescription: true,
+        baseIndentWidth: 2,
+        minColumnWidthForWrap: 0,
+    },
+    formatHelp(cmd, helper) {
+        return ['', helper.renderHelpTemplate(cmd, helper), ''].join('\n');
+    },
+    commandDescription: cmd => {
+        const description = cmd.description();
+        if (typeof description === 'object') {
+          return description.long || '';
+        }
+        return description;
+    },
+    subcommandDescription: cmd => {
+        const description = cmd.description();
+        if (typeof description === 'object') {
+          return description.short || '';
+        }
+        return description;
+    }
+});
+
+cli.configureOutput({
+    outputError: (message, write) => {
+        outputError(message.trim());
+    }
+});
 
 module.exports = cli;

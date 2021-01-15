@@ -2,7 +2,6 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const mkdirp = require('mkdirp');
 
 module.exports = exports;
 module.exports.__cmd = require('./cmd');
@@ -48,7 +47,7 @@ async function exports (whaler) {
         }
 
         if (!/^[a-z0-9-]+$/.test(ctx.options['name'])) {
-            throw new Error('Application name "' + ctx.options['name'] + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
+            throw new Error('Application name `' + ctx.options['name'] + '` includes invalid characters, only `[a-z0-9-]` are allowed.');
         }
 
         const { default: storage } = await whaler.fetch('apps');
@@ -74,4 +73,14 @@ async function exports (whaler) {
         }
     });
 
+}
+
+// PRIVATE
+
+async function mkdirp (dir) {
+    try {
+        await fs.stat(dir);
+        return;
+    } catch (e) {}
+    await fs.mkdir(dir, { recursive: true });
 }

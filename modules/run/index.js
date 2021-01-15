@@ -191,7 +191,7 @@ async function exports (whaler) {
             process.stdin.on('data', keyPress);
         }
 
-        return function revert() {
+        return function revert () {
             if (stream.end) {
                 stream.end();
             }

@@ -54,6 +54,6 @@ async function cmd (whaler) {
                 process.exitCode = data['StatusCode'];
             }
         })
-        .ignoreEndLine(true);
+        .ignoreOutEndLine(true);
 
 }

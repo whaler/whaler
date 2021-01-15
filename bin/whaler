@@ -14,7 +14,7 @@ if (-1 === index) {
     index = argv.indexOf('--host');
 }
 
-whaler.on('deprecate', async ctx => {
+whaler.on('deprecated', async ctx => {
     if ('ON' != process.env.WHALER_NO_DEPRECATION) {
         const { message } = ctx.options;
         process.stderr.write('\n' + message + '\n');
@@ -54,8 +54,8 @@ if (-1 !== index && argv[index + 1]) {
         progress.stop();
     };
 
-    whaler.before('deprecate', async ctx => 'ON' != process.env.WHALER_NO_DEPRECATION && progress.active && progress.stop());
-    whaler.after('deprecate', async ctx => 'ON' != process.env.WHALER_NO_DEPRECATION && progress.active && progress.start());
+    whaler.before('deprecated', async ctx => 'ON' != process.env.WHALER_NO_DEPRECATION && progress.active && progress.stop());
+    whaler.after('deprecated', async ctx => 'ON' != process.env.WHALER_NO_DEPRECATION && progress.active && progress.start());
 
     whaler.before('console', async ctx => progress.active && progress.stop());
     whaler.after('console', async ctx => progress.active && progress.start());
@@ -71,8 +71,8 @@ if (-1 !== index && argv[index + 1]) {
             whaler.fetch('plugins').then(({ default: plugins }) => plugins)
         ]);
 
-        // TODO: remove in v1
-        cli.deprecate = message => whaler.deprecate(message);
+        // TODO: remove in some later release
+        cli.on('deprecated', message => whaler.deprecated(message));
 
         for (let name of await modules.list()) {
             const { default: module } = await modules.import(name);
@@ -97,14 +97,10 @@ if (-1 !== index && argv[index + 1]) {
         return cli;
     }().then(cli => {
         progress.done();
-        if (!argv.length) {
-            cli.help();
-        } else {
-            cli.parse(process.argv);
-        }
+        return cli.parseAsync(process.argv);
     }).catch(err => {
         progress.done();
-        whaler.error('%s\n', err.message);
+        console.error('%s\n', err.message);
     });
 
 }

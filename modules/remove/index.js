@@ -50,7 +50,7 @@ async function exports (whaler) {
         for (let name of services) {
             const container = docker.getContainer(name + '.' + appName);
 
-            whaler.info('Removing "%s.%s" container.', name, appName);
+            whaler.info('Removing `%s.%s` container.', name, appName);
 
             try {
                 await container.remove({
@@ -58,9 +58,9 @@ async function exports (whaler) {
                     force: true
                 });
 
-                whaler.info('Container "%s.%s" removed.', name, appName);
+                whaler.info('Container `%s.%s` removed.', name, appName);
             } catch (e) {
-                whaler.warn('Container "%s.%s" already removed.', name, appName);
+                whaler.warn('Container `%s.%s` already removed.', name, appName);
             }
 
             if (ctx.options['purge']) {
@@ -72,7 +72,7 @@ async function exports (whaler) {
                         const image = docker.getImage(imageName);
                         await image.remove();
 
-                        whaler.warn('Image "%s" removed.', imageName);
+                        whaler.warn('Image `%s` removed.', imageName);
                     } catch (e) {}
                 }
             }
@@ -119,7 +119,7 @@ async function exports (whaler) {
 
                 await storage.remove(appName);
 
-                whaler.warn('Application "%s" removed.', appName);
+                whaler.warn('Application `%s` removed.', appName);
             }
         }
     });

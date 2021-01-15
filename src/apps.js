@@ -1,71 +1,68 @@
 'use strict';
 
-var yaml = require('js-yaml');
-var Storage = require('../lib/storage');
+const util = require('util');
+const yaml = require('../lib/yaml');
+const storage = require('./storage');
 
-module.exports = new Apps('apps');
-module.exports.Apps = Apps;
+const STORAGE = Symbol('storage');
 
-function Apps(name) {
-    this._storage = new Storage(name);
-    this._storage.errors = {
-        '"%s" not found.': 'An application with "%s" name not found.',
-        '"%s" already exists.': 'An application with "%s" name already exists.'
-    };
-}
+const errors = {
+    'ERR_NOT_FOUND': 'An application with `%s` name not found.',
+    'ERR_ALREADY_EXISTS': 'An application with `%s` name already exists.'
+};
 
-/**
- * @param callback
- */
-Apps.prototype.all = function(callback) {
-    this._storage.all((err, data) => {
+class Apps {
+    constructor(name) {
+        const adapter = storage.create(name);
+        this[STORAGE] = async (method, ...args) => {
+            try {
+                return adapter[method](...args);
+            } catch (e) {
+                if (args.length && e.hasOwnProperty('code') && Object.keys(errors).includes(e.code)) {
+                    e.message = util.format(errors[e.code], args[0]);
+                }
+                throw e;
+            }
+        };
+    }
+
+    async *[Symbol.asyncIterator]() {
+        const data = await this.all();
+        for (let name in data) {
+            yield [name, data[name]];
+        }
+    }
+
+    async all() {
+        const data = await this[STORAGE]('all');
         for (let name in data) {
             data[name] = prepareDataToGet(data[name]);
         }
-        callback(err, data);
-    });
-};
+        return data;
+    }
 
-/**
- * @param name
- * @param callback
- */
-Apps.prototype.get = function(name, callback) {
-    this._storage.get(name, (err, data) => {
-        callback(err, prepareDataToGet(data));
-    });
-};
+    async get(name) {
+        const data = await this[STORAGE]('get', name);
+        return prepareDataToGet(data);
+    }
 
-/**
- * @param name
- * @param data
- * @param callback
- */
-Apps.prototype.add = function(name, data, callback) {
-    this._storage.insert(name, prepareDataToSet(data), (err, data) => {
-        callback(err, prepareDataToGet(data));
-    });
-};
+    async add(name, data) {
+        data = await this[STORAGE]('insert', name, prepareDataToSet(data));
+        return prepareDataToGet(data);
+    }
 
-/**
- * @param name
- * @param data
- * @param callback
- */
-Apps.prototype.update = function(name, data, callback) {
-    this._storage.update(name, prepareDataToSet(data), (err) => {
-        prepareDataToGet(data);
-        callback(err);
-    });
-};
+    async update(name, data) {
+        data = await this[STORAGE]('update', name, prepareDataToSet(data));
+        return prepareDataToGet(data);
+    }
 
-/**
- * @param name
- * @param callback
- */
-Apps.prototype.remove = function(name, callback) {
-    this._storage.remove(name, callback);
-};
+    async remove(name) {
+        await this[STORAGE]('remove', name);
+    }
+}
+
+module.exports = new Apps('apps');
+module.exports.Apps = Apps;
 
 // PRIVATE
 
@@ -73,36 +70,38 @@ Apps.prototype.remove = function(name, callback) {
  * @param data
  * @returns {*}
  */
-function prepareDataToSet(data) {
+function prepareDataToSet (data) {
+    const result = { ...data };
     if (data && data['config']) {
+        result['config'] = { ...data['config'] };
         if (data['config']['data']) {
             if ('string' !== typeof data['config']['data']) {
-                data['config']['data'] = yaml.dump(data['config']['data'], { indent: 2 });
+                result['config']['data'] = yaml.dump(data['config']['data']);
             }
         } else {
-            data['config']['data'] = '';
+            result['config']['data'] = '';
         }
     }
-
-    return data;
+    return result;
 }
 
 /**
  * @param data
  * @returns {*}
  */
-function prepareDataToGet(data) {
+function prepareDataToGet (data) {
+    const result = { ...data };
     if (data && data['config']) {
+        result['config'] = { ...data['config'] };
         if (data['config']['data']) {
             if ('string' === typeof data['config']['data']) {
-                data['config']['data'] = yaml.load(data['config']['data']);
+                result['config']['data'] = yaml.load(data['config']['data']);
             }
         } else {
-            data['config']['data'] = {
+            result['config']['data'] = {
                 services: {}
             };
         }
     }
-
-    return data;
+    return result;
 }

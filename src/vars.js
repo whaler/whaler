@@ -1,77 +1,65 @@
 'use strict';
 
-var Storage = require('../lib/storage');
+const util = require('util');
+const storage = require('./storage');
+
+const STORAGE = Symbol('storage');
+
+const errors = {
+    'ERR_NOT_FOUND': 'An var with `%s` name not found.'
+};
+
+class Vars {
+    constructor(name) {
+        const adapter = storage.create(name);
+        this[STORAGE] = async (method, ...args) => {
+            try {
+                return adapter[method](...args);
+            } catch (e) {
+                if (args.length && e.hasOwnProperty('code') && Object.keys(errors).includes(e.code)) {
+                    e.message = util.format(errors[e.code], args[0]);
+                }
+                throw e;
+            }
+        };
+    }
+
+    async *[Symbol.asyncIterator]() {
+        const data = await this.all();
+        for (let name in data) {
+            yield [name, data[name]];
+        }
+    }
+
+    async all() {
+        const vars = {};
+        const data = await this[STORAGE]('all');
+        for (let name in data) {
+            vars[name] = data[name]['value'] || '';
+        }
+        return vars;
+    }
+
+    async get(name) {
+        let data = {};
+        try {
+            data = await this[STORAGE]('get', name);
+        } catch (e) {}
+        return data['value'] || '';
+    }
+
+    async set(name, value) {
+        value = value || '';
+        const data = await this[STORAGE]('set', name, { value });
+        return data['value'] || '';
+    }
+
+    async unset(name) {
+        try {
+            await this[STORAGE]('remove', name);
+        } catch (e) {}
+    }
+}
 
 module.exports = new Vars('vars');
 module.exports.Vars = Vars;
-
-function Vars(name) {
-    this._storage = new Storage(name);
-    this._storage.errors = {
-        '"%s" not found.': 'An var with "%s" name not found.'
-    };
-}
-
-/**
- * @param callback
- */
-Vars.prototype.all = function(callback) {
-    this._storage.all((err, data) => {
-        if (err) {
-            return callback(err);
-        }
-        const vars = {};
-        for (let key in data) {
-            vars[key] = data[key]['value'];
-        }
-        callback(null, vars);
-    });
-};
-
-/**
- * @param name
- * @param callback
- */
-Vars.prototype.get = function(name, callback) {
-    this._storage.get(name, (err, data) => {
-        if (err) {
-            return callback(err);
-        }
-        callback(null, data['value'] || '');
-    });
-};
-
-/**
- * @param name
- * @param value
- * @param callback
- */
-Vars.prototype.set = function(name, value, callback) {
-    const data = {
-        value: value || ''
-    };
-    this._storage.insert(name, data, (err) => {
-        if (err) {
-            return this.get(name, (_err, value) => {
-                if (_err) {
-                    return callback(err);
-                }
-                this._storage.update(name, data, (err) => {
-                    if (err) {
-                        return callback(err);
-                    }
-                    callback(null);
-                });
-            });
-        }
-        callback(null);
-    });
-};
-
-/**
- * @param name
- * @param callback
- */
-Vars.prototype.unset = function(name, callback) {
-    this._storage.remove(name, callback);
-};

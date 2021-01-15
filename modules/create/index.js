@@ -2,7 +2,6 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const mkdirp = require('mkdirp');
 const parseEnv = require('../../lib/parse-env');
 
 module.exports = exports;
@@ -39,7 +38,7 @@ async function exports (whaler) {
 
         if (serviceName) {
             if (!appConfig['data']['services'][serviceName]) {
-                throw new Error('Config for "' + ctx.options['ref'] + '" not found.');
+                throw new Error('Config for `' + ctx.options['ref'] + '` not found.');
             }
         }
 
@@ -80,7 +79,7 @@ async function exports (whaler) {
         for (let name of services) {
             const config = appConfig['data']['services'][name];
 
-            whaler.info('Creating "%s.%s" container.', name, appName);
+            whaler.info('Creating `%s.%s` container.', name, appName);
 
             config['env'] = config['env'] || [];
             config['env'].push('WHALER_APP=' + appName);
@@ -432,7 +431,7 @@ async function exports (whaler) {
 
                             } else {
                                 if (!/^[a-z0-9-]+$/.test(arr[0])) {
-                                    throw new Error('Application volume name "' + arr[0] + '" includes invalid characters, only "[a-z0-9-]" are allowed.');
+                                    throw new Error('Application volume name `' + arr[0] + '` includes invalid characters, only `[a-z0-9-]` are allowed.');
                                 }
 
                                 arr[0] = 'whaler_vlm.' + appName + '.' + (volumeCfg['name'] || arr[0]);
@@ -542,7 +541,7 @@ async function exports (whaler) {
                 });
             }
 
-            whaler.info('Container "%s.%s" created.', name, appName);
+            whaler.info('Container `%s.%s` created.', name, appName);
 
             containers[name] = container;
         }
@@ -573,4 +572,14 @@ async function exports (whaler) {
         }
     });
 
+}
+
+// PRIVATE
+
+async function mkdirp (dir) {
+    try {
+        await fs.stat(dir);
+        return;
+    } catch (e) {}
+    await fs.mkdir(dir, { recursive: true });
 }

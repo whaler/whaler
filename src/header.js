@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('fs');
-const colors = require('colors/safe');
+const chalk = require('chalk');
 const docker = require('./docker');
 
 module.exports = header();
@@ -9,7 +9,7 @@ module.exports = header();
 /**
  * @returns {string}
  */
-function header() {
+function header () {
     const logo = prepareLogo();
     const info = prepareInfo();
 
@@ -29,12 +29,12 @@ function header() {
  * @param logo
  * @returns {Array}
  */
-function prepareLogo() {
+function prepareLogo () {
     const logo = fs.readFileSync(__dirname + '/../logo.txt', 'utf8');
 
     const data = logo.split('\n');
     data.forEach((line, index) => {
-        data[index] = line.length ? colors.blue(line) : line;
+        data[index] = line.length ? chalk.blue(line) : line;
     });
 
     return data;
@@ -43,7 +43,7 @@ function prepareLogo() {
 /**
  * @returns {Array}
  */
-function prepareInfo() {
+function prepareInfo () {
     const pkg = require('../package.json');
     let info = fs.readFileSync(__dirname + '/../info.txt', 'utf8');
 
@@ -51,21 +51,20 @@ function prepareInfo() {
     let dockerAPI = false;
     try {
         const dev = require('../dev.json');
-        version = dev.version + (dev.sha ? ' ' + colors.gray(dev.sha.substr(0, 7)) : '');
+        version = dev.version + (dev.sha ? ' ' + chalk.gray(dev.sha.substr(0, 7)) : '');
         dockerAPI = docker.modem.version.substr(1, docker.modem.version.length);
     } catch(e) {}
 
-    info = info.replace('[url]', colors.yellow('URL: ') + pkg.homepage);
-    info = info.replace('[author]', colors.yellow('Author: ') + pkg.author.name);
-    info = info.replace('[version]', colors.yellow('Version: ') + version);
-    info = info.replace('[dockerAPI]', dockerAPI ? colors.yellow('Docker API: ') + dockerAPI : '');
+    info = info.replace('[url]', chalk.yellow('URL: ') + pkg.homepage);
+    info = info.replace('[version]', chalk.yellow('Version: ') + version);
+    info = info.replace('[dockerAPI]', dockerAPI ? chalk.yellow('Docker API: ') + dockerAPI : '');
 
     const data = info.split('\n');
     data.every((line, index) => {
         if (!line.length) {
             return false;
         }
-        data[index] = colors.cyan(line);
+        data[index] = chalk.cyan(line);
 
         return true;
     });
