@@ -1,16 +1,20 @@
 services:
 
     redis:
-        image: redis:3
+        image: redis:6
 
-    flask:
-        dockerfile: |
-            FROM python:2.7.8
-            RUN pip install Flask redis
-        workdir: /usr/src/app
-        volumes:
-            - .:/usr/src/app
+    node:
         ports:
             - 5000:5000
-        entrypoint: python
-        cmd: app.py
+        dockerfile: |
+            FROM node:14.15
+            RUN \
+                mkdir -p /usr/src/app && \
+                cd /usr/src/app && \
+                npm init -y && \
+                npm install redis
+        workdir: /usr/src/app
+        volumes:
+            - ./app.js:/usr/src/app/index.js
+        entrypoint: node
+        cmd: index.js

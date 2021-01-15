@@ -1,5 +1,13 @@
-# How to run this example:
+# Hello-World:
+
+## Start app:
 
 ```sh
 $ whaler start --init
+```
+
+## Remove app:
+
+```sh
+$ whaler remove --purge
 ```
