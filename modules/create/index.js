@@ -232,6 +232,11 @@ async function exports (whaler) {
                 }
             }
 
+            let platform = '';
+            if ('string' === typeof config['platform']) {
+                platform = config['platform'];
+            }
+
             if (buildContext) {
                 let file = null;
                 let dockerfile = null;
@@ -277,11 +282,6 @@ async function exports (whaler) {
                 let pull = true;
                 if ('object' === typeof config['build'] && config['build'].hasOwnProperty('pull')) {
                     pull = config['build']['pull'];
-                }
-
-                let platform = '';
-                if ('string' === typeof config['platform']) {
-                    platform = config['platform'];
                 }
 
                 let buildargs = null;
