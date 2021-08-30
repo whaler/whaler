@@ -33,7 +33,7 @@ class Whaler extends Application {
     /**
      * @api public
      */
-    async init() {
+    async loadEnv() {
         // base
         await mkdirp('/etc/whaler');
         await loadEnv('/etc/whaler/env');
@@ -42,7 +42,12 @@ class Whaler extends Application {
         if (await exists(process.env.HOME + '/.whaler')) {
             await loadEnv(process.env.HOME + '/.whaler/env');
         }
+    }
 
+    /**
+     * @api public
+     */
+    async init() {
         // bridge
         await mkdirp('/var/lib/whaler/bin');
         await fs.writeFile('/var/lib/whaler/bin/bridge', await fs.readFile(__dirname + '/bin/bridge'), { mode: '755' });

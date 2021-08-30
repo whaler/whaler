@@ -29,10 +29,16 @@ whaler.on('console', async ctx => {
 if (-1 !== index && argv[index + 1]) {
 
     const args = argv.splice(index, 2);
-    whaler.fetch('client').then(({ default: client }) => {
+
+    void async function main () {
+        await whaler.loadEnv();
+        const { default: client } = await whaler.fetch('client');
+
+        return client;
+    }().then(client => {
         client(args[1], argv);
     }).catch(err => {
-        whaler.error('%s\n', err.message);
+        console.error('%s\n', err.message);
     });
 
 } else {
@@ -63,6 +69,7 @@ if (-1 !== index && argv[index + 1]) {
     void async function main () {
         progress.run();
 
+        await whaler.loadEnv();
         await whaler.init();
 
         const [ cli, modules , plugins ] = await Promise.all([
