@@ -71,6 +71,7 @@ function client (host, argv) {
             name: path.basename(process.cwd()),
             argv: argv,
             env: {
+                FORCE_COLOR: process.env.FORCE_COLOR,
                 WHALER_FRONTEND: ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY ? 'interactive' : 'noninteractive')
             },
             xterm: {
