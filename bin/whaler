@@ -44,15 +44,20 @@ if (-1 !== index && argv[index + 1]) {
 } else {
 
     const progress = require('../src/progress');
-    progress.active = true;
+    progress.active = false;
     progress.run = () => {
+        let spaces = 0;
+
         if (!argv.length) {
             console.log('');
             console.log(require('../src/header'));
             console.log('');
-            progress.start(2);
-        } else {
-            progress.start();
+            spaces = 2;
+        }
+
+        if ('interactive' === process.env.WHALER_FRONTEND) {
+            progress.active = true;
+            progress.start(spaces);
         }
     };
     progress.done = () => {
@@ -67,9 +72,8 @@ if (-1 !== index && argv[index + 1]) {
     whaler.after('console', async ctx => progress.active && progress.start());
 
     void async function main () {
-        progress.run();
-
         await whaler.loadEnv();
+        progress.run();
         await whaler.init();
 
         const [ cli, modules , plugins ] = await Promise.all([
