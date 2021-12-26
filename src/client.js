@@ -68,10 +68,10 @@ function client (host, argv) {
         }
         client.pipe(process.stdout);
         client.write(JSON.stringify({
-            name: path.basename(process.cwd()),
+            name: process.env.WHALER_APP || path.basename(process.cwd()),
             argv: argv,
             env: {
-                FORCE_COLOR: process.env.FORCE_COLOR,
+                TERM: ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY ? null : 'dumb'),
                 WHALER_FRONTEND: ('interactive' === process.env.WHALER_FRONTEND && process.stdout.isTTY ? 'interactive' : 'noninteractive')
             },
             xterm: {

@@ -177,6 +177,16 @@ async function loadEnv (envFile) {
                 process.env[key] = env[key];
             }
         }
+
+        const defaultEnv = {
+            WHALER_FRONTEND: process.stdin.isTTY ? 'interactive' : 'noninteractive',
+        };
+        for (let key in defaultEnv) {
+            if ('undefined' === typeof process.env[key]) {
+                process.env[key] = env[key];
+            }
+        }
+
     } else {
         await fs.writeFile(envFile, await fs.readFile(__dirname + '/.env'));
     }

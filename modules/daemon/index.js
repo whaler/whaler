@@ -44,9 +44,9 @@ async function exports (whaler) {
                     data = JSON.parse(data.toString());
 
                     const env = data['env'] || {};
-                    env.WHALER_DAEMON_DIR  = dir;
+                    env.WHALER_DAEMON_DIR = dir;
                     env.WHALER_DAEMON_NAME = data['name'];
-                    
+
                     const opt = data['xterm'] || {};
                     opt['cwd'] = dir;
                     opt['env'] = Object.assign({}, process.env, env);

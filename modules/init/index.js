@@ -18,6 +18,10 @@ async function exports (whaler) {
             throw new Error('App path must be absolute.');
         }
 
+        if (!/^[a-z0-9-]+$/.test(ctx.options['name'])) {
+            throw new Error('Application name `' + ctx.options['name'] + '` includes invalid characters, only `[a-z0-9-]` are allowed.');
+        }
+
         if (process.env.WHALER_DAEMON_NAME) {
             let dir = process.env.WHALER_DAEMON_DIR;
 
@@ -44,10 +48,6 @@ async function exports (whaler) {
                 await mkdirp(path.dirname(ctx.options['config']));
                 await fs.writeFile(ctx.options['config'], '');
             }
-        }
-
-        if (!/^[a-z0-9-]+$/.test(ctx.options['name'])) {
-            throw new Error('Application name `' + ctx.options['name'] + '` includes invalid characters, only `[a-z0-9-]` are allowed.');
         }
 
         const { default: storage } = await whaler.fetch('apps');

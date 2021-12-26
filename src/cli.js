@@ -20,7 +20,7 @@ const util = {
      */
     prepare: (type, value) => {
         if ('name' == type) {
-            let name = path.basename(process.cwd());
+            let name = process.env.WHALER_APP || path.basename(process.cwd());
             if (process.env.WHALER_DAEMON_NAME) {
                 name = process.env.WHALER_DAEMON_NAME;
             }
@@ -28,7 +28,7 @@ const util = {
             return value || name;
 
         } else if ('ref' == type) {
-            let ref = path.basename(process.cwd());
+            let ref = process.env.WHALER_APP || path.basename(process.cwd());
             if (process.env.WHALER_DAEMON_NAME) {
                 ref = process.env.WHALER_DAEMON_NAME;
             }

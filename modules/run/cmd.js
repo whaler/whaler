@@ -26,7 +26,7 @@ async function cmd (whaler) {
 
             let tty = true;
             let stdin = true;
-            if (options.detach || options.nonInteractive || 'noninteractive' === process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
+            if (options.detach || options.nonInteractive || 'interactive' !== process.env.WHALER_FRONTEND || !process.stdout.isTTY) {
                 tty = false;
                 stdin = false;
             }
