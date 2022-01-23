@@ -6,7 +6,9 @@ This app depends on [docker](https://www.docker.com/).
 
 ## Setup
 
-### Linux & Darwin/OSX 64bit
+Download [whaler-client](https://github.com/whaler/whaler-client/releases/tag/0.x)
+
+### Linux & Darwin/macOS
 
 ```sh
 curl -sSL https://git.io/get-whaler | sh
@@ -24,9 +26,6 @@ Available options:
 --version=<VERSION>    Specify an "Whaler" version (dev, latest, ...).
 ```
 
-### Windows 64bit
-
-Download [whaler-client](https://github.com/whaler/whaler-client/releases/tag/windows_amd64)
 
 ## License
 
