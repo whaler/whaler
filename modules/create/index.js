@@ -284,15 +284,14 @@ async function exports (whaler) {
                     pull = config['build']['pull'];
                 }
 
-                let buildargs = null;
+                let buildargs = {};
                 if ('object' === typeof config['build'] && config['build'].hasOwnProperty('args')) {
-                    buildargs = {};
                     for (let arg of config['build']['args']) {
                         const arr = arg.split('=');
                         buildargs[arr[0]] = arr[1];
                     }
-                    buildargs = JSON.stringify(buildargs);
                 }
+                buildargs = JSON.stringify(buildargs);
 
                 let target = null;
                 if ('object' === typeof config['build'] && config['build'].hasOwnProperty('target')) {
@@ -521,7 +520,7 @@ async function exports (whaler) {
                     if (3 === arr.length && 'container' === arr[1]) {
                         const container = docker.getContainer(arr[2]);
                         const info = await container.inspect();
-                        createOpts['HostConfig']['ExtraHosts'].push(arr[0] + ':' + info['NetworkSettings']['Networks']['bridge']['IPAddress']);
+                        createOpts['HostConfig']['ExtraHosts'].push(arr[0] + ':' + info['NetworkSettings']['Networks']['whaler_nw']['IPAddress']);
                     } else {
                         createOpts['HostConfig']['ExtraHosts'].push(value);
                     }
