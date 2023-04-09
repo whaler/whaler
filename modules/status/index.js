@@ -67,7 +67,7 @@ async function exports (whaler) {
                 const info = await container.inspect();
                 if (info['State']['Running']) {
                     status = 'ON';
-                    ip = info['NetworkSettings']['Networks']['bridge']['IPAddress'];
+                    ip = info['NetworkSettings']['Networks']['whaler_nw']['IPAddress'];
                 } else {
                     status = 'OFF';
                 }
