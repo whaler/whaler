@@ -366,8 +366,8 @@ async function exports (whaler) {
             }
 
             let volumes = [];
-            if (info['ContainerConfig']['Volumes']) {
-                volumes = Object.keys(info['ContainerConfig']['Volumes']);
+            if (info['Config']['Volumes']) {
+                volumes = Object.keys(info['Config']['Volumes']);
             }
 
             if (config['volumes_from']) {
