@@ -16,7 +16,7 @@
     "containers"
   ],
   "license": "MIT",
-  "version": "0.7.1-dev",
+  "version": "0.8.0-dev",
   "main": "index.js",
   "bin": {
     "whaler": "bin/whaler"
@@ -28,25 +28,25 @@
     "@balena/dockerignore": "^1.0.2",
     "chalk": "^4.1.2",
     "cli-table": "^0.3.11",
-    "diff": "^5.0.0",
-    "dockerode": "^3.3.1",
+    "diff": "^5.1.0",
+    "dockerode": "^4.0.0",
     "js-yaml": "^4.1.0",
-    "js-yaml-js-types": "^1.0.0",
+    "js-yaml-js-types": "^1.0.1",
     "koa-compose": "^4.1.0",
-    "nmpm": "^2.0.2",
-    "node-fetch": "^2.6.7",
-    "node-pty": "^0.10.1",
-    "semver": "^7.3.5",
+    "nmpm": "^2.0.3",
+    "node-fetch": "^2.7.0",
+    "node-pty": "^1.0.0",
+    "semver": "^7.5.4",
     "stack-trace": "^0.0.10",
-    "string-argv": "^0.3.1",
-    "tar-fs": "^2.1.1",
-    "tar-stream": "^2.2.0",
+    "string-argv": "^0.3.2",
+    "tar-fs": "^3.0.4",
+    "tar-stream": "^3.1.6",
     "x-commander": "^0.3.0"
   },
   "devDependencies": {
-    "chai": "^4.3.4",
-    "mocha": "^9.1.4",
-    "rewire": "^6.0.0"
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "rewire": "^7.0.0"
   },
   "optionalDependencies": {},
   "repository": {
