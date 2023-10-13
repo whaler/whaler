@@ -119,6 +119,7 @@ async function exports (whaler) {
 
                 try {
                     const stream = await container.attach({
+                        hijack: true,
                         stream: true,
                         stdin: attachStdin,
                         stdout: true,
