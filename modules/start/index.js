@@ -158,6 +158,7 @@ async function exports (whaler) {
 
                     if (tty) {
                         stream = await container.attach({
+                            hijack: true,
                             stream: true,
                             stdin: true,
                             stdout: true,
