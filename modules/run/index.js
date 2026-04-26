@@ -82,6 +82,9 @@ async function exports (whaler) {
             'HostConfig': {
                 'AutoRemove': true,
                 'ExtraHosts': info['HostConfig']['ExtraHosts'],
+                'Dns': info['HostConfig']['Dns'],
+                'DnsSearch': info['HostConfig']['DnsSearch'],
+                'DnsOptions': info['HostConfig']['DnsOptions'],
                 'Binds': info['HostConfig']['Binds'],
                 'VolumesFrom': info['HostConfig']['VolumesFrom']
             }
