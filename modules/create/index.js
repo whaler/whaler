@@ -118,7 +118,11 @@ async function exports (whaler) {
 
             config['labels'] = config['labels'] || {};
             for (let l in config['labels']) {
-                config['labels'][l] = JSON.stringify(config['labels'][l]);
+                if ('object' === typeof config['labels'][l] && null !== config['labels'][l]) {
+                    config['labels'][l] = JSON.stringify(config['labels'][l]);
+                } else {
+                    config['labels'][l] = config['labels'][l];
+                }
             }
             config['labels']['whaler.app'] = appName;
             config['labels']['whaler.service'] = name;
@@ -161,6 +165,7 @@ async function exports (whaler) {
                 'HostConfig': {
                     'Binds': [
                         '/var/lib/whaler/bin/bridge:/usr/bin/@me',
+                        '/var/lib/whaler/bin/bridge:/usr/bin/@ctl',
                         '/var/lib/whaler/bin/bridge:/usr/bin/@whaler'
                     ],
                     'RestartPolicy': {},
@@ -513,14 +518,62 @@ async function exports (whaler) {
                 }
             }
 
+            if (config['dns']) {
+                createOpts['HostConfig']['Dns'] = [];
+                for (let value of [].concat(config['dns'])) {
+                    const arr = value.split(':');
+                    if (2 === arr.length && 'container' === arr[0]) {
+                        const container = docker.getContainer(arr[1]);
+                        const info = await container.inspect();
+                        const networks = info['NetworkSettings']['Networks'];
+
+                        let ip = networks['whaler_nw']?.IPAddress;
+                        if (!ip) {
+                            ip = Object.values(networks).find(n => n.IPAddress)?.IPAddress;
+                        }
+
+                        if (!ip) {
+                            throw new Error('Container `' + arr[1] + '` has no IP address (not running or no network)');
+                        }
+
+                        createOpts['HostConfig']['Dns'].push(ip);
+                    } else {
+                        createOpts['HostConfig']['Dns'].push(value);
+                    }
+                }
+            }
+
+            if (config['dns_search']) {
+                createOpts['HostConfig']['DnsSearch'] = [].concat(config['dns_search']);
+            }
+
+            if (config['dns_opt']) {
+                createOpts['HostConfig']['DnsOptions'] = [].concat(config['dns_opt']);
+            }
+
             if (config['extra_hosts']) {
                 createOpts['HostConfig']['ExtraHosts'] = [];
-                for (let value of config['extra_hosts']) {
+                for (let value of config['extra_hosts'].flatMap(expandBraces)) {
                     const arr = value.split(':');
                     if (3 === arr.length && 'container' === arr[1]) {
                         const container = docker.getContainer(arr[2]);
                         const info = await container.inspect();
-                        createOpts['HostConfig']['ExtraHosts'].push(arr[0] + ':' + info['NetworkSettings']['Networks']['whaler_nw']['IPAddress']);
+                        const networks = info['NetworkSettings']['Networks'];
+
+                        if (!networks || Object.keys(networks).length === 0) {
+                            throw new Error('Container `' + arr[2] + '` has no networks');
+                        }
+
+                        let ip = networks['whaler_nw']?.IPAddress;
+                        if (!ip) {
+                            ip = Object.values(networks).find(n => n.IPAddress)?.IPAddress;
+                        }
+
+                        if (!ip) {
+                            throw new Error('Container `' + arr[2] + '` has no IP address (not running or no network)');
+                        }
+
+                        createOpts['HostConfig']['ExtraHosts'].push(arr[0] + ':' + ip);
                     } else {
                         createOpts['HostConfig']['ExtraHosts'].push(value);
                     }
@@ -579,6 +632,106 @@ async function exports (whaler) {
 }
 
 // PRIVATE
+
+function expandBraces (s) {
+    const open = s.indexOf('{');
+    if (-1 === open) {
+        return [s];
+    }
+
+    let depth = 0;
+    let close = -1;
+    for (let i = open; i < s.length; i++) {
+        if ('{' === s[i]) {
+            depth++;
+        } else if ('}' === s[i]) {
+            depth--;
+            if (0 === depth) {
+                close = i;
+                break;
+            }
+        }
+    }
+
+    if (-1 === close) {
+        return [s];
+    }
+
+    const prefix = s.slice(0, open);
+    const inner  = s.slice(open + 1, close);
+    const suffix = s.slice(close + 1);
+
+    const suffixes = expandBraces(suffix);
+    const middles  = braceAlternatives(inner);
+
+    return middles.flatMap(m => suffixes.map(suf => prefix + m + suf));
+}
+
+function braceAlternatives (inner) {
+    const alts = splitTopLevelComma(inner);
+    if (1 === alts.length) {
+        const range = parseNumericRange(alts[0]);
+        if (range) {
+            return numericSequence(range[0], range[1]);
+        }
+
+        return expandBraces(alts[0]);
+    }
+
+    return alts.flatMap(a => expandBraces(a));
+}
+
+function splitTopLevelComma (s) {
+    const parts = [];
+    let depth = 0;
+    let start = 0;
+
+    for (let i = 0; i < s.length; i++) {
+        if ('{' === s[i]) {
+            depth++;
+        } else if ('}' === s[i]) {
+            if (depth > 0) {
+                depth--;
+            }
+        } else if (',' === s[i] && 0 === depth) {
+            parts.push(s.slice(start, i));
+            start = i + 1;
+        }
+    }
+
+    parts.push(s.slice(start));
+
+    return parts;
+}
+
+function parseNumericRange (s) {
+    const i = s.indexOf('..');
+    if (-1 === i) {
+        return null;
+    }
+
+    const from = parseInt(s.slice(0, i).trim(), 10);
+    const to   = parseInt(s.slice(i + 2).trim(), 10);
+    if (isNaN(from) || isNaN(to)) {
+        return null;
+    }
+
+    return [from, to];
+}
+
+function numericSequence (from, to) {
+    const step = from <= to ? 1 : -1;
+    const result = [];
+
+    for (let v = from; ; v += step) {
+        result.push(String(v));
+        if (v === to) {
+            break;
+        }
+    }
+
+    return result;
+}
 
 async function mkdirp (dir) {
     try {
