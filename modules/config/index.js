@@ -222,6 +222,10 @@ async function prepareConfig (config, env, loader) {
                 services[key]['env'] = convertArrayToObject(services[key]['env'], '=');
             }
 
+            if (services[key]['labels'] && Array.isArray(services[key]['labels'])) {
+                services[key]['labels'] = convertArrayToObject(services[key]['labels'], '=');
+            }
+
             if (services[key]['volumes'] && Array.isArray(services[key]['volumes'])) {
                 services[key]['volumes'] = convertArrayToObject(services[key]['volumes'], ':');
             }
