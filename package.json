@@ -16,7 +16,7 @@
     "containers"
   ],
   "license": "MIT",
-  "version": "0.8.0",
+  "version": "0.9.0-dev",
   "main": "index.js",
   "bin": {
     "whaler": "bin/whaler"
