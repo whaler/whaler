@@ -303,8 +303,8 @@ async function exports (whaler) {
                     target = config['build']['target'];
                 }
 
-                const authconfig = await whaler.emit('create:authconfig', createOpts);
-                await docker.followBuildImage(file, { pull, platform, dockerfile, buildargs, target, authconfig, t: createOpts['Image'] });
+                const registryconfig = await whaler.emit('create:registryconfig', createOpts);
+                await docker.followBuildImage(file, { pull, platform, dockerfile, buildargs, target, registryconfig, t: createOpts['Image'] });
 
             } else {
                 try {
@@ -624,6 +624,24 @@ async function exports (whaler) {
                     ctx.result = { username, password, serveraddress };
                 }
             }
+        } catch (e) {
+            ctx.error = e;
+        }
+    });
+
+    // TODO: experimental
+    whaler.on('create:registryconfig', async ctx => {
+        try {
+            const { default: config } = await whaler.import(process.env.HOME + '/.docker/config.json');
+
+            const registryconfig = {};
+            for (let serveraddress in config['auths'] || {}) {
+                if (config['auths'][serveraddress]['auth']) {
+                    let [ username, password ] = Buffer.from(config['auths'][serveraddress]['auth'], 'base64').toString().split(':');
+                    registryconfig[serveraddress] = { username, password, serveraddress };
+                }
+            }
+            ctx.result = registryconfig;
         } catch (e) {
             ctx.error = e;
         }
